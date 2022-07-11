@@ -1,4 +1,4 @@
-package sketchy
+package gaul
 
 import (
 	"github.com/tdewolff/canvas"

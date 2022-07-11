@@ -1,4 +1,4 @@
-package sketchy
+package gaul
 
 import (
 	"fmt"
@@ -68,6 +68,7 @@ func (p Point) IsEqual(q Point) bool {
 	return p.X == q.X && p.Y == q.Y
 }
 
+// Draw draws the point as a circle with a given radius using a canvas context
 func (p Point) Draw(s float64, ctx *canvas.Context) {
 	ctx.DrawPath(p.X, p.Y, canvas.Circle(s))
 }
@@ -82,16 +83,95 @@ func SquaredDistance(p Point, q Point) float64 {
 	return math.Pow(q.X-p.X, 2) + math.Pow(q.Y-p.Y, 2)
 }
 
+// Scale multiplies point coordinates by a fixed value
+func (p Point) Scale(x, y float64) Point {
+	return Point{X: p.X * x, Y: p.Y * y}
+}
+
+// ScaleX scales the x value of a point
+func (p Point) ScaleX(x float64) Point {
+	return Point{X: p.X * x, Y: p.Y}
+}
+
+// ScaleY scales the y value of a point
+func (p Point) ScaleY(y float64) Point {
+	return Point{X: p.X, Y: p.Y * y}
+}
+
+// Rotate calculates a new point rotated around the origin by a given angle
+func (p Point) Rotate(a float64) Point {
+	return Point{
+		X: p.X*math.Cos(a) - p.Y*math.Sin(a),
+		Y: p.Y*math.Sin(a) + p.Y*math.Cos(a),
+	}
+}
+
+// Shear calculates a new point sheared given angles for the x and y directions
+func (p Point) Shear(x, y float64) Point {
+	return Point{
+		X: p.X + p.Y*math.Tan(x),
+		Y: p.X*math.Tan(y) + p.Y,
+	}
+}
+
+// ShearX calculates a new point sheared in the x direction by a given angle
+func (p Point) ShearX(a float64) Point {
+	return Point{
+		X: p.X + p.Y*math.Tan(a),
+		Y: p.Y,
+	}
+}
+
+// ShearY calculates a new point sheared in the x direction by a given angle
+func (p Point) ShearY(a float64) Point {
+	return Point{
+		X: p.X,
+		Y: p.X*math.Tan(a) + p.Y,
+	}
+}
+
+// Reflect calculates a new point that is reflected about both the x and y axes
+func (p Point) Reflect() Point {
+	return p.Scale(-1, -1)
+}
+
+// ReflectX calculates a new point that is reflected about the x-axis
+func (p Point) ReflectX() Point {
+	return p.ScaleX(-1)
+}
+
+// ReflectY calculates a new point that is reflected about the y-axis
+func (p Point) ReflectY() Point {
+	return p.ScaleY(-1)
+}
+
+// Translate calculates a new point with coordinates translated by the given amounts
+func (p Point) Translate(x, y float64) Point {
+	return Point{X: p.X + x, Y: p.Y + y}
+}
+
+// TranslateX calculates a new point with the x coordinated translated by the given amount
+func (p Point) TranslateX(x float64) Point {
+	return Point{X: p.X + x, Y: p.Y}
+}
+
+// TranslateY calculates a new point with the y coordinated translated by the given amount
+func (p Point) TranslateY(y float64) Point {
+	return Point{X: p.X, Y: p.Y + y}
+}
+
 // Line functions
 // String representation of a line, useful for debugging
 func (l Line) String() string {
 	return fmt.Sprintf("(%f, %f) -> (%f, %f)", l.P.X, l.P.Y, l.Q.X, l.Q.Y)
 }
 
+// IsEqual determines if two lines are equal to each other
 func (l Line) IsEqual(k Line) bool {
 	return l.P.IsEqual(k.P) && l.Q.IsEqual(k.Q)
 }
 
+// Angle calculates the angle between the line and the x-axis
 func (l Line) Angle() float64 {
 	dy := l.Q.Y - l.P.Y
 	dx := l.Q.X - l.P.X
@@ -121,6 +201,7 @@ func (l Line) Slope() float64 {
 	return dy / dx
 }
 
+// InvertedSlope calculates one over the slope of the line
 func (l Line) InvertedSlope() float64 {
 	slope := l.Slope()
 	if math.IsInf(slope, 1) || math.IsInf(slope, -1) {
@@ -129,6 +210,8 @@ func (l Line) InvertedSlope() float64 {
 	return -1 / slope
 }
 
+// PerpendicularAt calculates a line at a given percentage along the line with a given length that is perpendicular
+// to the original line
 func (l Line) PerpendicularAt(percentage float64, length float64) Line {
 	angle := l.Angle()
 	point := l.P.Lerp(l.Q, percentage)
@@ -148,6 +231,8 @@ func (l Line) PerpendicularAt(percentage float64, length float64) Line {
 	}
 }
 
+// PerpendicularBisector calculates a line with a given length at the midpoint of the original line that is also
+// perpendicular to the line
 func (l Line) PerpendicularBisector(length float64) Line {
 	return l.PerpendicularAt(0.5, length)
 }
@@ -160,6 +245,7 @@ func (l Line) Lerp(i float64) Point {
 	}
 }
 
+// Draw draws the line given a canvas context
 func (l Line) Draw(ctx *canvas.Context) {
 	ctx.MoveTo(l.P.X, l.P.Y)
 	ctx.LineTo(l.Q.X, l.Q.Y)
@@ -181,6 +267,7 @@ func (l Line) Length() float64 {
 	return Distance(l.P, l.Q)
 }
 
+// Intersects determines if two lines intersect each other
 func (l Line) Intersects(k Line) bool {
 	a1 := l.Q.X - l.P.X
 	b1 := k.P.X - k.Q.X
@@ -199,6 +286,7 @@ func (l Line) Intersects(k Line) bool {
 	return s >= 0 && t >= 0 && s <= 1 && t <= 1
 }
 
+// ParallelTo determines if two lines are parallel
 func (l Line) ParallelTo(k Line) bool {
 	a1 := l.Q.X - l.P.X
 	b1 := k.P.X - k.Q.X
@@ -206,6 +294,38 @@ func (l Line) ParallelTo(k Line) bool {
 	b2 := k.P.Y - k.Q.Y
 	d := a1*b2 - a2*b1
 	return d == 0
+}
+
+// Scale calculates a new line for which both points are scaled by the given amount
+func (l Line) Scale(x, y float64) Line {
+	return Line{
+		P: l.P.Scale(x, y),
+		Q: l.Q.Scale(x, y),
+	}
+}
+
+// Rotate calculates a new line for which both points are rotated by the given angle
+func (l Line) Rotate(a float64) Line {
+	return Line{
+		P: l.P.Rotate(a),
+		Q: l.Q.Rotate(a),
+	}
+}
+
+// Shear calculates a new line for which both points are sheared by the given amount
+func (l Line) Shear(x, y float64) Line {
+	return Line{
+		P: l.P.Shear(x, y),
+		Q: l.Q.Shear(x, y),
+	}
+}
+
+// Translate calculates a new line for which both points are translated by the given amount
+func (l Line) Translate(x, y float64) Line {
+	return Line{
+		P: l.P.Translate(x, y),
+		Q: l.Q.Translate(x, y),
+	}
 }
 
 // Curve functions
@@ -241,6 +361,7 @@ func (c *Curve) Last() Point {
 	return c.Points[n-1]
 }
 
+// LastLine returns the last line in a curve
 func (c *Curve) LastLine() Line {
 	n := len(c.Points)
 	switch n {
@@ -267,6 +388,7 @@ func (c *Curve) LastLine() Line {
 	}
 }
 
+// AddPoint appends a point to the curve
 func (c *Curve) AddPoint(x, y float64) {
 	c.Points = append(c.Points, Point{X: x, Y: y})
 }
@@ -312,6 +434,7 @@ func (c *Curve) Lerp(percentage float64) Point {
 	return point
 }
 
+// LineAt returns the line segment in a curve that is closest to the given percentage along the curve's length
 func (c *Curve) LineAt(percentage float64) (Line, float64) {
 	var line Line
 	var linePct float64
@@ -355,11 +478,13 @@ func (c *Curve) LineAt(percentage float64) (Line, float64) {
 	return line, linePct
 }
 
+// PerpendicularAt calculates a line that is perpendicular to the curve at a given percentage along the curve's length
 func (c *Curve) PerpendicularAt(percentage float64, length float64) Line {
 	line, linePct := c.LineAt(percentage)
 	return line.PerpendicularAt(linePct, length)
 }
 
+// Draw draws the curve given a canvas context
 func (c *Curve) Draw(ctx *canvas.Context) {
 	n := len(c.Points)
 	for i := 0; i < n-1; i++ {
@@ -373,12 +498,54 @@ func (c *Curve) Draw(ctx *canvas.Context) {
 	ctx.Stroke()
 }
 
+// Scale calculates a new curve for which each point is scaled by the give amount
+func (c *Curve) Scale(x, y float64) Curve {
+	var curve Curve
+	curve.Closed = c.Closed
+	for _, p := range c.Points {
+		curve.Points = append(curve.Points, p.Scale(x, y))
+	}
+	return curve
+}
+
+// Rotate calculates a new curve for which each point is rotated by the given angle
+func (c *Curve) Rotate(a float64) Curve {
+	var curve Curve
+	curve.Closed = c.Closed
+	for _, p := range c.Points {
+		curve.Points = append(curve.Points, p.Rotate(a))
+	}
+	return curve
+}
+
+// Shear calculates a new curve for which each point is sheared by the given amount
+func (c *Curve) Shear(x, y float64) Curve {
+	var curve Curve
+	curve.Closed = c.Closed
+	for _, p := range c.Points {
+		curve.Points = append(curve.Points, p.Shear(x, y))
+	}
+	return curve
+}
+
+// Translate calculates a new curve for which each point is translated by the given amount
+func (c *Curve) Translate(x, y float64) Curve {
+	var curve Curve
+	curve.Closed = c.Closed
+	for _, p := range c.Points {
+		curve.Points = append(curve.Points, p.Translate(x, y))
+	}
+	return curve
+}
+
 // Circle functions
 
+// Draw draws the circle given a canvas context
 func (c *Circle) Draw(ctx *canvas.Context) {
 	ctx.DrawPath(c.Center.X, c.Center.Y, canvas.Circle(c.Radius))
 }
 
+// ToCurve calculates a curve that approximates the circle with a given resolution (number of sides)
 func (c *Circle) ToCurve(resolution int) Curve {
 	points := make([]Point, resolution)
 	theta := Linspace(0, Tau, resolution, false)
@@ -390,10 +557,12 @@ func (c *Circle) ToCurve(resolution int) Curve {
 	return Curve{Points: points, Closed: true}
 }
 
+// ContainsPoint determines if a point lies inside the circle, including the boundary
 func (c *Circle) ContainsPoint(p Point) bool {
 	return Distance(c.Center, p) <= c.Radius
 }
 
+// PointOnEdge determines if a point lies on the boundary of a circle
 func (c *Circle) PointOnEdge(p Point) bool {
 	return Equalf(Distance(c.Center, p), c.Radius)
 }
@@ -405,6 +574,7 @@ func (r *Rect) ContainsPoint(p Point) bool {
 	return p.X >= r.X && p.X <= r.X+r.W && p.Y >= r.Y && p.Y <= r.Y+r.H
 }
 
+// Contains determines if the rectangle contains a given rectangle
 func (r *Rect) Contains(rect Rect) bool {
 	a := Point{X: r.X, Y: r.Y}
 	b := Point{X: r.X + r.W, Y: r.Y + r.H}
@@ -413,6 +583,7 @@ func (r *Rect) Contains(rect Rect) bool {
 	return a.X < c.X && a.Y < c.Y && b.X > d.X && b.Y > d.Y
 }
 
+// IsDisjoint determines if the rectangle is disjoint (no overlap) from a given rectangle
 func (r *Rect) IsDisjoint(rect Rect) bool {
 	aLeft := r.X
 	aRight := r.X + r.W
@@ -429,10 +600,12 @@ func (r *Rect) IsDisjoint(rect Rect) bool {
 	return false
 }
 
+// Overlaps determines if the rectangle overlaps the given rectangle
 func (r *Rect) Overlaps(rect Rect) bool {
 	return !r.IsDisjoint(rect)
 }
 
+// Intersects determines if the rectangle intersects the given rectangle
 func (r *Rect) Intersects(rect Rect) bool {
 	a := Point{X: r.X, Y: r.Y}
 	b := Point{X: r.X + r.W, Y: r.Y + r.H}
@@ -450,6 +623,18 @@ func (r *Rect) Intersects(rect Rect) bool {
 	return true
 }
 
+// ToCurve calculates a closed curve with points corresponding to the vertices of the rectangle
+func (r *Rect) ToCurve() Curve {
+	var curve Curve
+	curve.Closed = true
+	curve.Points = append(curve.Points, Point{X: r.X, Y: r.Y})
+	curve.Points = append(curve.Points, Point{X: r.X + r.W, Y: r.Y})
+	curve.Points = append(curve.Points, Point{X: r.X + r.W, Y: r.Y + r.H})
+	curve.Points = append(curve.Points, Point{X: r.X, Y: r.Y + r.H})
+	return curve
+}
+
+// Draw draws the rectangle given a canvas context
 func (r *Rect) Draw(ctx *canvas.Context) {
 	rect := canvas.Rectangle(r.W, r.H)
 	ctx.DrawPath(r.X, r.Y, rect)
@@ -457,6 +642,15 @@ func (r *Rect) Draw(ctx *canvas.Context) {
 
 // Triangle functions
 
+// ToCurve calculates a closed curve with points corresponding to the vertices of the triangle
+func (t *Triangle) ToCurve() Curve {
+	return Curve{
+		Points: []Point{t.A, t.B, t.C},
+		Closed: true,
+	}
+}
+
+// Draw draws the triangle given a canvas context
 func (t *Triangle) Draw(ctx *canvas.Context) {
 	ctx.MoveTo(t.A.X, t.A.Y)
 	ctx.LineTo(t.B.X, t.B.Y)
@@ -464,6 +658,7 @@ func (t *Triangle) Draw(ctx *canvas.Context) {
 	ctx.Close()
 }
 
+// Area calculates the area of the triangle
 func (t *Triangle) Area() float64 {
 	// Heron's formula
 	a := Line{P: t.A, Q: t.B}.Length()
@@ -473,6 +668,7 @@ func (t *Triangle) Area() float64 {
 	return math.Sqrt(s * (s - a) * (s - b) * (s - c))
 }
 
+// Perimeter calculates the perimeter of the triangle
 func (t *Triangle) Perimeter() float64 {
 	a := Line{P: t.A, Q: t.B}.Length()
 	b := Line{P: t.B, Q: t.C}.Length()
@@ -480,6 +676,7 @@ func (t *Triangle) Perimeter() float64 {
 	return a + b + c
 }
 
+// Centroid calculates the centroid of the triangle
 func (t *Triangle) Centroid() Point {
 	x := (t.A.X + t.B.X + t.C.X) / 3
 	y := (t.A.Y + t.B.Y + t.C.Y) / 3

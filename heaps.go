@@ -1,4 +1,4 @@
-package sketchy
+package gaul
 
 // PointHeap is a min/max heap for Points using inter-point distance as the metric
 type PointHeap struct {

@@ -1,4 +1,4 @@
-package sketchy
+package gaul
 
 import (
 	"github.com/stretchr/testify/assert"

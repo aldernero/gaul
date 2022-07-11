@@ -1,4 +1,4 @@
-package sketchy
+package gaul
 
 import "math"
 
