@@ -534,6 +534,17 @@ func (c *Curve) Copy() Curve {
 	return curve
 }
 
+// Centroid returns the centroid for the curve
+func (c *Curve) Centroid() Point {
+	N := float64(len(c.Points))
+	var totalX, totalY float64
+	for _, p := range c.Points {
+		totalX += p.X
+		totalY += p.Y
+	}
+	return Point{X: totalX / N, Y: totalY / N}
+}
+
 // Circle functions
 
 // Draw draws the circle given a canvas context
@@ -647,6 +658,11 @@ func (r *Rect) Draw(ctx *canvas.Context) {
 // Copy returns a new rectangle with the same corner, width, and height
 func (r *Rect) Copy() Rect {
 	return Rect{X: r.X, Y: r.Y, W: r.W, H: r.H}
+}
+
+// Center returns a point at the center of the rectangle
+func (r *Rect) Center() Point {
+	return Point{X: r.X + 0.5*r.W, Y: r.Y + 0.5*r.H}
 }
 
 // Triangle functions
