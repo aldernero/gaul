@@ -161,6 +161,11 @@ func (p *Point) Copy() Point {
 	return Point{X: p.X, Y: p.Y}
 }
 
+// ToVec2 translates the point to a Vec2 struct
+func (p *Point) ToVec2() Vec2 {
+	return Vec2{X: p.X, Y: p.Y}
+}
+
 // Line functions
 // String representation of a line, useful for debugging
 func (l Line) String() string {

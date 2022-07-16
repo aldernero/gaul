@@ -39,3 +39,7 @@ func (v Vec2) UnitNormal() Vec2 {
 	m := v.Mag()
 	return Vec2{X: v.Y / m, Y: -v.X / m}
 }
+
+func (v Vec2) ToPoint() Point {
+	return Point{X: v.X, Y: v.Y}
+}
