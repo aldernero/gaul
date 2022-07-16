@@ -1,21 +1,50 @@
 package gaul
 
-// Affine transformation in 2D using homogeneous coordinates
-// The matrix is of the form
-// | a b c |
-// | d e f | where g=h=0 and i=1
-// | g h i |
+import "math"
+
+// Affine2D is a type for dealing with affine transformations in 2D using homogeneous coordinates
 type Affine2D struct {
 	a, b, c float64
 	d, e, f float64
 	g, h, i float64
 }
 
-// Returns an identity affine transformation (no rotation, scaling, shearing, or translation)
+// NewAffine2D returns an identity affine transformation (no rotation, scaling, shearing, or translation)
 func NewAffine2D() *Affine2D {
 	var affine Affine2D
 	affine.a = 1
 	affine.e = 1
+	affine.i = 1
+	return &affine
+}
+
+// NewAffine2DWithScale returns an affine transformation with scaling configured
+func NewAffine2DWithScale(sx, sy float64) *Affine2D {
+	var affine Affine2D
+	affine.a = sx
+	affine.e = sy
+	affine.i = 1
+	return &affine
+}
+
+// NewAffine2DWithRotation returns an affine transformation with rotation configured
+func NewAffine2DWithRotation(angle float64) *Affine2D {
+	var affine Affine2D
+	affine.a = math.Cos(angle)
+	affine.b = -math.Sin(angle)
+	affine.d = math.Sin(angle)
+	affine.e = math.Cos(angle)
+	affine.i = 1
+	return &affine
+}
+
+// NewAffine2DWithTranslation returns an affine transformation with translation configured
+func NewAffine2DWithTranslation(tx, ty float64) *Affine2D {
+	var affine Affine2D
+	affine.a = 1
+	affine.c = tx
+	affine.e = 1
+	affine.f = ty
 	affine.i = 1
 	return &affine
 }
