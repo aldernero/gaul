@@ -84,80 +84,76 @@ func SquaredDistance(p Point, q Point) float64 {
 }
 
 // Scale multiplies point coordinates by a fixed value
-func (p Point) Scale(x, y float64) Point {
-	return Point{X: p.X * x, Y: p.Y * y}
+func (p *Point) Scale(x, y float64) {
+	p.X *= x
+	p.Y *= y
 }
 
 // ScaleX scales the x value of a point
-func (p Point) ScaleX(x float64) Point {
-	return Point{X: p.X * x, Y: p.Y}
+func (p *Point) ScaleX(x float64) {
+	p.X *= x
 }
 
 // ScaleY scales the y value of a point
-func (p Point) ScaleY(y float64) Point {
-	return Point{X: p.X, Y: p.Y * y}
+func (p *Point) ScaleY(y float64) {
+	p.Y *= y
 }
 
 // Rotate calculates a new point rotated around the origin by a given angle
-func (p Point) Rotate(a float64) Point {
-	return Point{
-		X: p.X*math.Cos(a) - p.Y*math.Sin(a),
-		Y: p.Y*math.Sin(a) + p.Y*math.Cos(a),
-	}
+func (p *Point) Rotate(a float64) {
+	x := p.X*math.Cos(a) - p.Y*math.Sin(a)
+	y := p.Y*math.Sin(a) + p.Y*math.Cos(a)
+	p.X = x
+	p.Y = y
 }
 
 // Shear calculates a new point sheared given angles for the x and y directions
-func (p Point) Shear(x, y float64) Point {
-	return Point{
-		X: p.X + p.Y*math.Tan(x),
-		Y: p.X*math.Tan(y) + p.Y,
-	}
+func (p *Point) Shear(x, y float64) {
+	newX := p.X + p.Y*math.Tan(x)
+	newY := p.X*math.Tan(y) + p.Y
+	p.X = newX
+	p.Y = newY
 }
 
 // ShearX calculates a new point sheared in the x direction by a given angle
-func (p Point) ShearX(a float64) Point {
-	return Point{
-		X: p.X + p.Y*math.Tan(a),
-		Y: p.Y,
-	}
+func (p *Point) ShearX(a float64) {
+	p.X = p.X + p.Y*math.Tan(a)
 }
 
 // ShearY calculates a new point sheared in the x direction by a given angle
-func (p Point) ShearY(a float64) Point {
-	return Point{
-		X: p.X,
-		Y: p.X*math.Tan(a) + p.Y,
-	}
+func (p *Point) ShearY(a float64) {
+	p.Y = p.X*math.Tan(a) + p.Y
 }
 
 // Reflect calculates a new point that is reflected about both the x and y axes
-func (p Point) Reflect() Point {
-	return p.Scale(-1, -1)
+func (p *Point) Reflect() {
+	p.Scale(-1, -1)
 }
 
 // ReflectX calculates a new point that is reflected about the x-axis
-func (p Point) ReflectX() Point {
-	return p.ScaleX(-1)
+func (p *Point) ReflectX() {
+	p.ScaleX(-1)
 }
 
 // ReflectY calculates a new point that is reflected about the y-axis
-func (p Point) ReflectY() Point {
-	return p.ScaleY(-1)
+func (p *Point) ReflectY() {
+	p.ScaleY(-1)
 }
 
 // Translate calculates a new point with coordinates translated by the given amounts
-func (p Point) Translate(x, y float64) Point {
-	return Point{X: p.X + x, Y: p.Y + y}
+func (p *Point) Translate(x, y float64) {
+	p.X += x
+	p.Y += y
 }
 
 // TranslateX calculates a new point with the x coordinated translated by the given amount
-func (p Point) TranslateX(x float64) Point {
-	return Point{X: p.X + x, Y: p.Y}
+func (p *Point) TranslateX(x float64) {
+	p.X += x
 }
 
 // TranslateY calculates a new point with the y coordinated translated by the given amount
-func (p Point) TranslateY(y float64) Point {
-	return Point{X: p.X, Y: p.Y + y}
+func (p *Point) TranslateY(y float64) {
+	p.Y += y
 }
 
 // Line functions
@@ -297,35 +293,27 @@ func (l Line) ParallelTo(k Line) bool {
 }
 
 // Scale calculates a new line for which both points are scaled by the given amount
-func (l Line) Scale(x, y float64) Line {
-	return Line{
-		P: l.P.Scale(x, y),
-		Q: l.Q.Scale(x, y),
-	}
+func (l *Line) Scale(x, y float64) {
+	l.P.Scale(x, y)
+	l.Q.Scale(x, y)
 }
 
 // Rotate calculates a new line for which both points are rotated by the given angle
-func (l Line) Rotate(a float64) Line {
-	return Line{
-		P: l.P.Rotate(a),
-		Q: l.Q.Rotate(a),
-	}
+func (l *Line) Rotate(a float64) {
+	l.P.Rotate(a)
+	l.Q.Rotate(a)
 }
 
 // Shear calculates a new line for which both points are sheared by the given amount
-func (l Line) Shear(x, y float64) Line {
-	return Line{
-		P: l.P.Shear(x, y),
-		Q: l.Q.Shear(x, y),
-	}
+func (l *Line) Shear(x, y float64) {
+	l.P.Shear(x, y)
+	l.Q.Shear(x, y)
 }
 
 // Translate calculates a new line for which both points are translated by the given amount
-func (l Line) Translate(x, y float64) Line {
-	return Line{
-		P: l.P.Translate(x, y),
-		Q: l.Q.Translate(x, y),
-	}
+func (l *Line) Translate(x, y float64) {
+	l.P.Translate(x, y)
+	l.Q.Translate(x, y)
 }
 
 // Curve functions
@@ -499,43 +487,31 @@ func (c *Curve) Draw(ctx *canvas.Context) {
 }
 
 // Scale calculates a new curve for which each point is scaled by the give amount
-func (c *Curve) Scale(x, y float64) Curve {
-	var curve Curve
-	curve.Closed = c.Closed
+func (c *Curve) Scale(x, y float64) {
 	for _, p := range c.Points {
-		curve.Points = append(curve.Points, p.Scale(x, y))
+		p.Scale(x, y)
 	}
-	return curve
 }
 
 // Rotate calculates a new curve for which each point is rotated by the given angle
-func (c *Curve) Rotate(a float64) Curve {
-	var curve Curve
-	curve.Closed = c.Closed
+func (c *Curve) Rotate(a float64) {
 	for _, p := range c.Points {
-		curve.Points = append(curve.Points, p.Rotate(a))
+		p.Rotate(a)
 	}
-	return curve
 }
 
 // Shear calculates a new curve for which each point is sheared by the given amount
-func (c *Curve) Shear(x, y float64) Curve {
-	var curve Curve
-	curve.Closed = c.Closed
+func (c *Curve) Shear(x, y float64) {
 	for _, p := range c.Points {
-		curve.Points = append(curve.Points, p.Shear(x, y))
+		p.Shear(x, y)
 	}
-	return curve
 }
 
 // Translate calculates a new curve for which each point is translated by the given amount
-func (c *Curve) Translate(x, y float64) Curve {
-	var curve Curve
-	curve.Closed = c.Closed
+func (c *Curve) Translate(x, y float64) {
 	for _, p := range c.Points {
-		curve.Points = append(curve.Points, p.Translate(x, y))
+		p.Translate(x, y)
 	}
-	return curve
 }
 
 // Circle functions
