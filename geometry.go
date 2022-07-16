@@ -156,6 +156,11 @@ func (p *Point) TranslateY(y float64) {
 	p.Y += y
 }
 
+// Copy returns a new point with the same x and y coordinates
+func (p *Point) Copy() Point {
+	return Point{X: p.X, Y: p.Y}
+}
+
 // Line functions
 // String representation of a line, useful for debugging
 func (l Line) String() string {
@@ -314,6 +319,11 @@ func (l *Line) Shear(x, y float64) {
 func (l *Line) Translate(x, y float64) {
 	l.P.Translate(x, y)
 	l.Q.Translate(x, y)
+}
+
+// Copy returns a new line with the same points P and Q
+func (l *Line) Copy() Line {
+	return Line{P: l.P.Copy(), Q: l.Q.Copy()}
 }
 
 // Curve functions
@@ -514,6 +524,16 @@ func (c *Curve) Translate(x, y float64) {
 	}
 }
 
+// Copy returns a new line with the same points and closed property
+func (c *Curve) Copy() Curve {
+	var curve Curve
+	curve.Closed = true
+	for _, p := range c.Points {
+		curve.AddPoint(p.X, p.Y)
+	}
+	return curve
+}
+
 // Circle functions
 
 // Draw draws the circle given a canvas context
@@ -541,6 +561,14 @@ func (c *Circle) ContainsPoint(p Point) bool {
 // PointOnEdge determines if a point lies on the boundary of a circle
 func (c *Circle) PointOnEdge(p Point) bool {
 	return Equalf(Distance(c.Center, p), c.Radius)
+}
+
+// Copy returns a new circle with the same center and radius
+func (c *Circle) Copy() Circle {
+	return Circle{
+		Center: c.Center.Copy(),
+		Radius: c.Radius,
+	}
 }
 
 // Rect functions
@@ -616,6 +644,11 @@ func (r *Rect) Draw(ctx *canvas.Context) {
 	ctx.DrawPath(r.X, r.Y, rect)
 }
 
+// Copy returns a new rectangle with the same corner, width, and height
+func (r *Rect) Copy() Rect {
+	return Rect{X: r.X, Y: r.Y, W: r.W, H: r.H}
+}
+
 // Triangle functions
 
 // ToCurve calculates a closed curve with points corresponding to the vertices of the triangle
@@ -657,4 +690,13 @@ func (t *Triangle) Centroid() Point {
 	x := (t.A.X + t.B.X + t.C.X) / 3
 	y := (t.A.Y + t.B.Y + t.C.Y) / 3
 	return Point{X: x, Y: y}
+}
+
+// Copy returns a new triangle with the same vertices
+func (t *Triangle) Copy() Triangle {
+	return Triangle{
+		A: t.A.Copy(),
+		B: t.B.Copy(),
+		C: t.C.Copy(),
+	}
 }
