@@ -326,6 +326,15 @@ func (l *Line) Copy() Line {
 	return Line{P: l.P.Copy(), Q: l.Q.Copy()}
 }
 
+// Boundary returns the smallest rect that contains both points in the line
+func (l *Line) Boundary() Rect {
+	minX := math.Min(l.P.X, l.Q.X)
+	minY := math.Min(l.P.Y, l.Q.Y)
+	maxX := math.Max(l.P.X, l.Q.X)
+	maxY := math.Max(l.P.Y, l.Q.Y)
+	return Rect{X: minX, Y: minY, W: maxX - minX, H: maxY - minY}
+}
+
 // Curve functions
 
 // Length Calculates the length of the line segments of a curve
@@ -545,6 +554,29 @@ func (c *Curve) Centroid() Point {
 	return Point{X: totalX / N, Y: totalY / N}
 }
 
+// Boundary returns the smallest rect that contains all the points in the curve
+func (c *Curve) Boundary() Rect {
+	minX := math.Inf(1)
+	minY := math.Inf(1)
+	maxX := math.Inf(-1)
+	maxY := math.Inf(-1)
+	for _, p := range c.Points {
+		if p.X < minX {
+			minX = p.X
+		}
+		if p.Y < minY {
+			minY = p.Y
+		}
+		if p.X > maxX {
+			maxX = p.X
+		}
+		if p.Y > maxY {
+			maxY = p.Y
+		}
+	}
+	return Rect{X: minX, Y: minY, W: maxX - minX, H: maxY - minY}
+}
+
 // Circle functions
 
 // Draw draws the circle given a canvas context
@@ -580,6 +612,16 @@ func (c *Circle) Copy() Circle {
 		Center: c.Center.Copy(),
 		Radius: c.Radius,
 	}
+}
+
+// Boundary returns the smallest rect that contains all points on the circle
+func (c *Circle) Boundary() Rect {
+	x := c.Center.X
+	y := c.Center.Y
+	r := c.Radius
+	minX := x + r*math.Cos(Pi)
+	minY := y + r*math.Sin(Pi/2)
+	return Rect{X: minX, Y: minY, W: 2 * r, H: 2 * r}
 }
 
 // Rect functions
@@ -715,4 +757,10 @@ func (t *Triangle) Copy() Triangle {
 		B: t.B.Copy(),
 		C: t.C.Copy(),
 	}
+}
+
+// Boundary returns the smallest rect that contains all three vertices
+func (t *Triangle) Boundary() Rect {
+	curve := t.ToCurve()
+	return curve.Boundary()
 }
