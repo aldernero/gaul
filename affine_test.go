@@ -31,7 +31,7 @@ func TestAffine2D_Mult(t *testing.T) {
 		h: 59,
 		i: 61,
 	}
-	result := Mult(matrix1, matrix2)
+	result := Mult(&matrix1, &matrix2)
 	assert.Equal(446.0, result.a)
 	assert.Equal(486.0, result.b)
 	assert.Equal(520.0, result.c)
@@ -68,7 +68,7 @@ func TestAffine2D_Add(t *testing.T) {
 		h: 59,
 		i: 61,
 	}
-	result := Add(matrix1, matrix2)
+	result := Add(&matrix1, &matrix2)
 	assert.Equal(31.0, result.a)
 	assert.Equal(34.0, result.b)
 	assert.Equal(42.0, result.c)

@@ -61,7 +61,7 @@ func NewAffine2DWithShear(sx, sy float64) *Affine2D {
 }
 
 // Mult calculates the new Affine2D corresponding to multiplying p and q
-func Mult(p, q Affine2D) *Affine2D {
+func Mult(p, q *Affine2D) *Affine2D {
 	return &Affine2D{
 		a: p.a*q.a + p.b*q.d + p.c*q.g,
 		b: p.a*q.b + p.b*q.e + p.c*q.h,
@@ -76,7 +76,7 @@ func Mult(p, q Affine2D) *Affine2D {
 }
 
 // Add calculates the new Affine2D corresponding to adding p and q
-func Add(p, q Affine2D) *Affine2D {
+func Add(p, q *Affine2D) *Affine2D {
 	return &Affine2D{
 		a: p.a + q.a,
 		b: p.b + q.b,
