@@ -98,6 +98,53 @@ func (a *Affine2D) MultVec(v Vec2) Vec2 {
 	}
 }
 
+// SetScale sets the scale factor for the x and y directions
+func (a *Affine2D) SetScale(sx, sy float64) {
+	a.a = sx
+	a.e = sy
+}
+
+// SetTranslation sets the translation for the x and y directions
+func (a *Affine2D) SetTranslation(tx, ty float64) {
+	a.c = tx
+	a.f = ty
+}
+
+// SetRotation sets the rotation for the transformation
+func (a *Affine2D) SetRotation(angle float64) {
+	a.a *= math.Cos(angle)
+	a.b *= -math.Sin(angle)
+	a.d *= math.Sin(angle)
+	a.e *= math.Cos(angle)
+}
+
+// SetRotationDegrees sets the rotation of the transformation
+func (a *Affine2D) SetRotationDegrees(angle float64) {
+	a.SetRotation(Deg2Rad(angle))
+}
+
+// SetShearFactor sets the shear factor in the x and y directions
+func (a *Affine2D) SetShearFactor(sx, sy float64) {
+	if a.b == 0 {
+		a.b = sx
+	} else {
+		a.b *= sx
+	}
+	if a.d == 0 {
+		a.d *= sy
+	}
+}
+
+// SetShearAngle sets the shear factor in the x and y directions
+func (a *Affine2D) SetShearAngle(ax, ay float64) {
+	a.SetShearFactor(math.Tan(ax), math.Tan(ay))
+}
+
+// SetShearAngleDegrees sets the shear factor in the x and y directions
+func (a *Affine2D) SetShearAngleDegrees(ax, ay float64) {
+	a.SetShearAngle(Deg2Rad(ax), Deg2Rad(ay))
+}
+
 // Transform applies the affine transformation to a vector
 func (a *Affine2D) Transform(v Vec2) Vec2 {
 	return a.MultVec(v)
