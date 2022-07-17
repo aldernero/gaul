@@ -49,6 +49,17 @@ func NewAffine2DWithTranslation(tx, ty float64) *Affine2D {
 	return &affine
 }
 
+// NewAffine2DWithShear returns an affine transformation with shearing configured
+func NewAffine2DWithShear(sx, sy float64) *Affine2D {
+	var affine Affine2D
+	affine.a = 1
+	affine.b = sx
+	affine.d = sy
+	affine.e = 1
+	affine.i = 1
+	return &affine
+}
+
 // Mult calculates the new Affine2D corresponding to multiplying p and q
 func Mult(p, q Affine2D) *Affine2D {
 	return &Affine2D{
@@ -107,11 +118,46 @@ func (a *Affine2D) TransformLine(l Line) Line {
 }
 
 // TransformCurve applies the affine transformation to a curve
-func (a Affine2D) TransformCurve(c Curve) Curve {
+func (a *Affine2D) TransformCurve(c Curve) Curve {
 	var curve Curve
 	curve.Closed = c.Closed
 	for _, p := range c.Points {
 		curve.Points = append(curve.Points, a.TransformPoint(p))
 	}
 	return curve
+}
+
+// RotateAboutPoint rotates a vector around a point instead of the origin
+func (a *Affine2D) RotateAboutPoint(vec Vec2, angle float64, point Point) Vec2 {
+	moveOrigin := NewAffine2DWithTranslation(-point.X, -point.Y)
+	rotate := NewAffine2DWithRotation(angle)
+	returnOrigin := NewAffine2DWithTranslation(point.X, point.Y)
+	temp1 := moveOrigin.Transform(vec)
+	temp2 := rotate.Transform(temp1)
+	result := returnOrigin.Transform(temp2)
+	return result
+}
+
+// RotatePointAboutPoint rotates a point around a point instead of the origin
+func (a *Affine2D) RotatePointAboutPoint(point Point, angle float64, rotationPoint Point) Point {
+	vec := a.RotateAboutPoint(point.ToVec2(), angle, rotationPoint)
+	return vec.ToPoint()
+}
+
+// RotateLineAboutPoint rotates a line around a point instead of the origin
+func (a *Affine2D) RotateLineAboutPoint(line Line, angle float64, rotationPoint Point) Line {
+	return Line{
+		P: a.RotatePointAboutPoint(line.P, angle, rotationPoint),
+		Q: a.RotatePointAboutPoint(line.Q, angle, rotationPoint),
+	}
+}
+
+// RotateCurveAboutPoint rotates a curve around a point instead of the origin
+func (a *Affine2D) RotateCurveAboutPoint(curve Curve, angle float64, rotationPoint Point) Curve {
+	var result Curve
+	result.Closed = curve.Closed
+	for _, p := range curve.Points {
+		result.Points = append(result.Points, a.RotatePointAboutPoint(p, angle, rotationPoint))
+	}
+	return result
 }
