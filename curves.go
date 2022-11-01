@@ -93,3 +93,30 @@ func PaduaPoints(n int) []Point {
 	}
 	return points
 }
+
+// PulsarPlot transforms a slice of curves into a slice of curves representing the segments that make up a pulsar plot
+func PulsarPlot(curves []Curve) []Curve {
+	result := []Curve{}
+	if len(curves) == 0 {
+		return result
+	}
+	n := len(curves[0].Points)
+	mins := make([]float64, n)
+	for _, c := range curves {
+		segment := Curve{}
+		for i := 0; i < n; i++ {
+			px := c.Points[i].X
+			py := c.Points[i].Y
+			if py >= mins[i] {
+				mins[i] = py
+				segment.AddPoint(px, py)
+			} else {
+				if len(segment.Points) > 1 {
+					result = append(result, segment)
+				}
+				segment = Curve{}
+			}
+		}
+	}
+	return result
+}
