@@ -117,6 +117,9 @@ func PulsarPlot(curves []Curve) []Curve {
 				segment = Curve{}
 			}
 		}
+		if len(segment.Points) > 1 {
+			result = append(result, segment)
+		}
 	}
 	return result
 }
