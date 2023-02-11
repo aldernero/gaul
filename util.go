@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-var (
+const (
 	Pi    = math.Pi
 	Tau   = 2 * math.Pi
 	Sqrt2 = math.Sqrt2
-	Sqrt3 = math.Sqrt(3)
+	Sqrt3 = 1.7320508075688772
 	Smol  = 1e-9
 )
 
