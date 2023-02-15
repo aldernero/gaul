@@ -48,6 +48,14 @@ type Triangle struct {
 	C Point
 }
 
+type InteriorAngle int
+
+const (
+	CAB InteriorAngle = iota
+	ABC
+	BCA
+)
+
 // Point functions
 
 // Tuple representation of a point, useful for debugging
@@ -885,6 +893,35 @@ func (t Triangle) Boundary() Rect {
 	return curve.Boundary()
 }
 
+// BisectSubdivision returns a slice of triangles that are the result of subdividing the triangle into two
+// smaller triangles by bisecting one angle with a variable percent offset along the opposite side
+func (t Triangle) BisectSubdivision(angle InteriorAngle, percent float64) []Triangle {
+	result := make([]Triangle, 2)
+	var vertex1, vertex2, vertex3, vertex4 Point
+	var side Line
+	switch angle {
+	case CAB:
+		side = Line{P: t.B, Q: t.C}
+		vertex1 = t.A
+		vertex3 = t.B
+		vertex4 = t.C
+	case ABC:
+		side = Line{P: t.C, Q: t.A}
+		vertex1 = t.B
+		vertex3 = t.C
+		vertex4 = t.A
+	case BCA:
+		side = Line{P: t.A, Q: t.B}
+		vertex1 = t.C
+		vertex3 = t.A
+		vertex4 = t.B
+	}
+	vertex2 = side.Lerp(percent)
+	result[0] = Triangle{A: vertex1, B: vertex2, C: vertex3}
+	result[1] = Triangle{A: vertex1, B: vertex2, C: vertex4}
+	return result
+}
+
 // BarycentricSubdivision returns a slice of triangles that are the result of subdividing the triangle into three
 // smaller triangles using the centroid and each vertex as the new vertices
 func (t Triangle) BarycentricSubdivision() []Triangle {
@@ -919,12 +956,26 @@ func (t Triangle) CircumcenterSubdivision() []Triangle {
 }
 
 // OrthocenterSubdivision returns a slice of triangles that are the result of subdividing the triangle into three
-
+// smaller triangles using the orthocenter and each vertex as the new vertices
 func (t Triangle) OrthocenterSubdivision() []Triangle {
 	result := make([]Triangle, 3)
 	orthocenter := t.Orthocenter()
 	result[0] = Triangle{A: t.A, B: t.B, C: orthocenter}
 	result[1] = Triangle{A: t.B, B: t.C, C: orthocenter}
 	result[2] = Triangle{A: t.C, B: t.A, C: orthocenter}
+	return result
+}
+
+// MidpointSubdivision returns a slice of triangles that are the result of subdividing the triangle into four
+// smaller triangles using the midpoints of each side as the set of new vertices
+func (t Triangle) MidpointSubdivision() []Triangle {
+	result := make([]Triangle, 4)
+	c := Line{P: t.A, Q: t.B}.Midpoint()
+	a := Line{P: t.B, Q: t.C}.Midpoint()
+	b := Line{P: t.C, Q: t.A}.Midpoint()
+	result[0] = Triangle{A: t.A, B: c, C: b}
+	result[1] = Triangle{A: c, B: t.B, C: a}
+	result[2] = Triangle{A: b, B: a, C: t.C}
+	result[3] = Triangle{A: a, B: b, C: c}
 	return result
 }
