@@ -917,8 +917,8 @@ func (t Triangle) BisectSubdivision(angle InteriorAngle, percent float64) []Tria
 		vertex4 = t.B
 	}
 	vertex2 = side.Lerp(percent)
-	result[0] = Triangle{A: vertex1, B: vertex2, C: vertex3}
-	result[1] = Triangle{A: vertex1, B: vertex2, C: vertex4}
+	result[0] = Triangle{A: vertex1, B: vertex3, C: vertex2}
+	result[1] = Triangle{A: vertex1, B: vertex4, C: vertex2}
 	return result
 }
 
