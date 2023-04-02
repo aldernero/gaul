@@ -127,3 +127,25 @@ func (g *Gradient) Color(percentage float64) color.Color {
 	c2, _ := colorful.MakeColor(g.stops[index+1])
 	return c1.BlendHcl(c2, lerp)
 }
+
+func (g *Gradient) LinearPalette(num int) []color.Color {
+	palette := make([]color.Color, num)
+	ls := Linspace(0, 1, num, true)
+	for i, p := range ls {
+		palette[i] = g.Color(p)
+	}
+	return palette
+}
+
+func (g *Gradient) LinearPaletteStrings(num int) []string {
+	palette := g.LinearPalette(num)
+	paletteStrings := make([]string, num)
+	for i, c := range palette {
+		d, ok := colorful.MakeColor(c)
+		if !ok {
+			panic("invalid color")
+		}
+		paletteStrings[i] = d.Hex()
+	}
+	return paletteStrings
+}
