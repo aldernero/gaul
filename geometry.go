@@ -979,3 +979,32 @@ func (t Triangle) MidpointSubdivision() []Triangle {
 	result[3] = Triangle{A: a, B: b, C: c}
 	return result
 }
+
+func (t Triangle) MidAndThirdsSubdivision(angle InteriorAngle) []Triangle {
+	result := make([]Triangle, 5)
+	var p1, p2, q1, q2, v1, v2, v3 Point
+	switch angle {
+	case BCA:
+		v1 = t.C
+		v2 = t.A
+		v3 = t.B
+	case CAB:
+		v1 = t.A
+		v2 = t.B
+		v3 = t.C
+	case ABC:
+		v1 = t.B
+		v2 = t.C
+		v3 = t.A
+	}
+	p1 = Line{P: v2, Q: v3}.Lerp(1.0 / 3.0)
+	p2 = Line{P: v2, Q: v3}.Lerp(2.0 / 3.0)
+	q1 = Line{P: v1, Q: v2}.Midpoint()
+	q2 = Line{P: v1, Q: v3}.Midpoint()
+	result[0] = Triangle{A: v1, B: q1, C: q2}
+	result[1] = Triangle{A: q1, B: v2, C: p1}
+	result[2] = Triangle{A: q2, B: p2, C: v3}
+	result[3] = Triangle{A: p1, B: p2, C: q1}
+	result[4] = Triangle{A: p2, B: q2, C: q1}
+	return result
+}
