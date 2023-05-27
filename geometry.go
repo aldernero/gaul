@@ -511,13 +511,15 @@ func (c *Curve) PerpendicularAt(percentage float64, length float64) Line {
 // Draw draws the curve given a canvas context
 func (c *Curve) Draw(ctx *canvas.Context) {
 	n := len(c.Points)
-	for i := 0; i < n-1; i++ {
-		ctx.MoveTo(c.Points[i].X, c.Points[i].Y)
-		ctx.LineTo(c.Points[i+1].X, c.Points[i+1].Y)
+	if n == 0 {
+		return
+	}
+	ctx.MoveTo(c.Points[0].X, c.Points[0].Y)
+	for i := 1; i < n; i++ {
+		ctx.LineTo(c.Points[i].X, c.Points[i].Y)
 	}
 	if c.Closed {
-		ctx.MoveTo(c.Points[n-1].X, c.Points[n-1].Y)
-		ctx.LineTo(c.Points[0].X, c.Points[0].Y)
+		ctx.Close()
 	}
 	ctx.Stroke()
 }
