@@ -520,7 +520,8 @@ func (c *Curve) Draw(ctx *canvas.Context) {
 	}
 	if c.Closed {
 		ctx.Close()
-		ctx.Fill()
+		ctx.FillStroke()
+		return
 	}
 	ctx.Stroke()
 }
