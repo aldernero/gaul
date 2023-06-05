@@ -520,6 +520,7 @@ func (c *Curve) Draw(ctx *canvas.Context) {
 	}
 	if c.Closed {
 		ctx.Close()
+		ctx.Fill()
 	}
 	ctx.Stroke()
 }
@@ -742,6 +743,7 @@ func (t Triangle) Draw(ctx *canvas.Context) {
 	ctx.LineTo(t.B.X, t.B.Y)
 	ctx.LineTo(t.C.X, t.C.Y)
 	ctx.Close()
+	ctx.FillStroke()
 }
 
 // Area calculates the area of the triangle
