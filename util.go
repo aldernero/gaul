@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -143,4 +144,8 @@ func (p MetricPoint) ToIndexPoint() IndexPoint {
 
 func (p MetricPoint) ToPoint() Point {
 	return p.Point
+}
+
+func FloatString(f float64, prec int) string {
+	return strconv.FormatFloat(f, 'f', prec, 64)
 }

@@ -44,6 +44,10 @@ func (v Vec2) ToPoint() Point {
 	return Point{X: v.X, Y: v.Y}
 }
 
+func (v Vec2) ToString(prec int) string {
+	return "(" + FloatString(v.X, prec) + ", " + FloatString(v.Y, prec) + ")"
+}
+
 type Vec3 struct {
 	X float64
 	Y float64
@@ -76,4 +80,8 @@ func (v Vec3) Normalize() Vec3 {
 		panic("cannot normalize vector with zero magnitude")
 	}
 	return v.Scale(1 / m)
+}
+
+func (v Vec3) ToString(prec int) string {
+	return "(" + FloatString(v.X, prec) + ", " + FloatString(v.Y, prec) + ", " + FloatString(v.Z, prec) + ")"
 }

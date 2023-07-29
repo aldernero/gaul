@@ -1,7 +1,10 @@
 package gaul
 
+import "C"
 import (
 	"github.com/lucasb-eyer/go-colorful"
+	"github.com/tdewolff/canvas"
+	"github.com/tdewolff/canvas/renderers"
 	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
@@ -148,4 +151,87 @@ func (g *Gradient) LinearPaletteStrings(num int) []string {
 		paletteStrings[i] = d.Hex()
 	}
 	return paletteStrings
+}
+
+type SinePalette struct {
+	A, B, C, D Vec3
+	Alpha      float64
+}
+
+func NewSinePalette(c, d Vec3) SinePalette {
+	return SinePalette{
+		A:     Vec3{0.5, 0.5, 0.5}, // typically don't need to change
+		B:     Vec3{0.5, 0.5, 0.5}, // typically don't need to change
+		C:     c,
+		D:     d,
+		Alpha: 1.0,
+	}
+}
+
+func (sp *SinePalette) ColorAt(t float64) color.Color {
+	r := sp.A.X + sp.B.X*math.Cos(2*math.Pi*(sp.C.X*t+sp.D.X))
+	g := sp.A.Y + sp.B.Y*math.Cos(2*math.Pi*(sp.C.Y*t+sp.D.Y))
+	b := sp.A.Z + sp.B.Z*math.Cos(2*math.Pi*(sp.C.Z*t+sp.D.Z))
+	var result color.RGBA64
+	result.R = uint16(Clamp(0, 1, r) * 65535)
+	result.G = uint16(Clamp(0, 1, g) * 65535)
+	result.B = uint16(Clamp(0, 1, b) * 65535)
+	result.A = uint16(Clamp(0, 1, sp.Alpha) * 65535)
+	return result
+}
+
+func (sp *SinePalette) Palette(num int) []color.Color {
+	palette := make([]color.Color, num)
+	ls := Linspace(0, 1, num, true)
+	for i, p := range ls {
+		palette[i] = sp.ColorAt(p)
+	}
+	return palette
+}
+
+func (sp *SinePalette) ToPng() (string, error) {
+	w := 285.0
+	h := 55.0
+	c := canvas.New(w, h)
+	ctx := canvas.NewContext(c)
+	fontFamily := canvas.NewFontFamily("DejaVu Sans")
+	if err := fontFamily.LoadLocalFont("DejaVuSans", canvas.FontRegular); err != nil {
+		return "", err
+	}
+	fontFace := fontFamily.Face(14.0, color.White, canvas.FontRegular, canvas.FontNormal)
+	ctx.SetFillColor(canvas.Black)
+	ctx.SetStrokeColor(canvas.Transparent)
+	ctx.DrawPath(0, 0, canvas.Rectangle(ctx.Width(), ctx.Height()))
+	ctx.Close()
+	t := Linspace(0, 1, 1000, true)
+	dw := 0.8 * w / 1000
+	dh := 0.2 * h
+	aText := "A = " + sp.A.ToString(3)
+	aTextBox := canvas.NewTextBox(fontFace, aText, 0.8*w, 10, canvas.Left, canvas.Center, 0, 0)
+	bText := "B = " + sp.B.ToString(3)
+	bTextBox := canvas.NewTextBox(fontFace, bText, 0.8*w, 10, canvas.Right, canvas.Center, 0, 0)
+	cText := "C = " + sp.C.ToString(3)
+	cTextBox := canvas.NewTextBox(fontFace, cText, 0.8*w, 10, canvas.Left, canvas.Center, 0, 0)
+	dText := "D = " + sp.D.ToString(3)
+	dTextBox := canvas.NewTextBox(fontFace, dText, 0.8*w, 10, canvas.Right, canvas.Center, 0, 0)
+	ctx.SetFillColor(color.White)
+	ctx.SetStrokeColor(color.White)
+	ctx.DrawText(0.1*w, h+dh+8, aTextBox)
+	ctx.DrawText(0.1*w, h+dh+8, bTextBox)
+	ctx.DrawText(0.1*w, h-dh, cTextBox)
+	ctx.DrawText(0.1*w, h-dh, dTextBox)
+	ctx.SetStrokeWidth(2 * dw)
+	for i, j := range t {
+		lineColor1 := sp.ColorAt(j)
+		ctx.SetStrokeColor(lineColor1)
+		x := 0.1*w + float64(i)*dw
+		ctx.MoveTo(x, h-dh)
+		ctx.LineTo(x, h+dh)
+		ctx.Stroke()
+	}
+	fname := "gaul-sinepalette_" + GetTimestampString() + ".png"
+	if err := renderers.Write(fname, c); err != nil {
+		return "", err
+	}
+	return fname, nil
 }
