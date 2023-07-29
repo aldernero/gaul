@@ -16,7 +16,7 @@ const (
 	Smol  = 1e-9
 )
 
-// Greatest common divisor
+// Gcd calculates the greatest common divisor
 func Gcd(a int, b int) int {
 	if b == 0 {
 		return a
@@ -25,18 +25,18 @@ func Gcd(a int, b int) int {
 	}
 }
 
-// Linear interpolation between two values
+// Lerp calculates the linear interpolation between two values
 func Lerp(a float64, b float64, i float64) float64 {
 	return a + i*(b-a)
 }
 
-// Linear interpolation from one range to another
+// Map calculates the linear interpolation from one range to another
 func Map(a float64, b float64, c float64, d float64, i float64) float64 {
 	p := (i - a) / (b - a)
 	return Lerp(c, d, p)
 }
 
-// Restrict a value to a given range
+// Clamp restricts a value to a given range
 func Clamp(a float64, b float64, c float64) float64 {
 	if c <= a {
 		return a
@@ -55,7 +55,7 @@ func NoTinyVals(a float64) float64 {
 	return a
 }
 
-// Creates a slice of linearly distributed values in a range
+// Linspace creates a slice of linearly distributed values in a range
 func Linspace(i float64, j float64, n int, b bool) []float64 {
 	var result []float64
 	N := float64(n)
@@ -69,12 +69,12 @@ func Linspace(i float64, j float64, n int, b bool) []float64 {
 	return result
 }
 
-// Convert from degrees to radians
+// Deg2Rad converts from degrees to radians
 func Deg2Rad(f float64) float64 {
 	return math.Pi * f / 180
 }
 
-// Convert from radians to degrees
+// Rad2Deg converts from radians to degrees
 func Rad2Deg(f float64) float64 {
 	return 180 * f / math.Pi
 }
@@ -90,7 +90,7 @@ func Shuffle(p *[]Point) {
 	}
 }
 
-// Create a string based on the current time for use in filenames
+// GetTimestampString creates a string based on the current time for use in filenames
 func GetTimestampString() string {
 	now := time.Now()
 	return fmt.Sprintf("%d%02d%02d_%02d%02d%02d",
