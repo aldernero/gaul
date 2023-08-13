@@ -149,3 +149,8 @@ func (p MetricPoint) ToPoint() Point {
 func FloatString(f float64, prec int) string {
 	return strconv.FormatFloat(f, 'f', prec, 64)
 }
+
+func Smoothstep(t float64) float64 {
+	t = Clamp(0, 1, t)
+	return t * t * (3 - 2*t)
+}
