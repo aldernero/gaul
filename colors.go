@@ -1,6 +1,5 @@
 package gaul
 
-import "C"
 import (
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/tdewolff/canvas"

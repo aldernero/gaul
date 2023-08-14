@@ -2,6 +2,7 @@ package gaul
 
 import (
 	"math/rand"
+	"time"
 
 	"github.com/ojrac/opensimplex-go"
 )
@@ -183,4 +184,75 @@ func (r *Rng) calcNoise(x, y, z float64) float64 {
 		freq *= r.lacunarity
 	}
 	return totalNoise / totalAmp
+}
+
+type LFSRSmall struct {
+	state uint16
+}
+
+func NewLFSRSmallWithSeed(seed uint16) LFSRSmall {
+	return LFSRSmall{state: seed}
+}
+
+func NewLFSRSmall() LFSRSmall {
+	return LFSRSmall{state: uint16(time.Now().UnixNano())}
+}
+
+func (l *LFSRSmall) Next() uint16 {
+	b := ((l.state >> 0) ^ (l.state >> 2) ^ (l.state >> 3) ^ (l.state >> 5)) & 1
+	l.state = (l.state >> 1) | (b << 15)
+	return l.state
+}
+
+type LFSRMedium struct {
+	state uint32
+}
+
+func NewLFSRMediumWithSeed(seed uint32) LFSRMedium {
+	return LFSRMedium{state: seed}
+}
+
+func NewLFSRMedium() LFSRMedium {
+	return LFSRMedium{state: uint32(time.Now().UnixNano())}
+}
+
+func (l *LFSRMedium) Next() uint32 {
+	l.state ^= l.state << 13
+	l.state ^= l.state >> 17
+	l.state ^= l.state << 5
+	return l.state
+}
+
+// LFSRLarge is a 64-bit Xorshift PRNG
+// Benchmarks show this is faster than LFSRMedium and LFSRSmall, so you might as well use this one.
+// Benchmarks also show this is 6-7x faster than the standard math/rand PRNG
+type LFSRLarge struct {
+	state uint64
+}
+
+func NewLFSRLargeWithSeed(seed uint64) LFSRLarge {
+	return LFSRLarge{state: seed}
+}
+
+func NewLFSRLarge() LFSRLarge {
+	return LFSRLarge{state: uint64(time.Now().UnixNano())}
+}
+
+func (l *LFSRLarge) Next() uint64 {
+	l.state ^= l.state << 13
+	l.state ^= l.state >> 7
+	l.state ^= l.state << 17
+	return l.state
+}
+
+func (l *LFSRLarge) Float64() float64 {
+	return float64(l.Next()) / float64(^uint64(0))
+}
+
+func (l *LFSRLarge) Uint64n(n uint64) uint64 {
+	return l.Next() % n
+}
+
+func (l *LFSRLarge) Uint64() uint64 {
+	return l.Next()
 }
