@@ -17,6 +17,7 @@ const (
 // Pseudo-random number generator data
 type Rng struct {
 	seed        int64
+	prng        *rand.Rand
 	noise       opensimplex.Noise
 	octaves     int
 	persistence float64
@@ -31,9 +32,9 @@ type Rng struct {
 
 // Returns a PRNG with a system and noise generator
 func NewRng(i int64) Rng {
-	rand.Seed(i)
 	return Rng{
 		seed:        i,
+		prng:        rand.New(rand.NewSource(i)),
 		noise:       opensimplex.New(i),
 		octaves:     defaultOctaves,
 		persistence: defaultPersistence,
@@ -45,13 +46,6 @@ func NewRng(i int64) Rng {
 		yoffset:     0,
 		zoffset:     0,
 	}
-}
-
-// Sets the seed for both the system and opensimplex PRNG
-func (r *Rng) SetSeed(i int64) {
-	rand.Seed(i)
-	r.seed = i
-	r.noise = opensimplex.New(i)
 }
 
 func (r *Rng) Gaussian(mean float64, stdev float64) float64 {
