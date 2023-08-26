@@ -82,11 +82,12 @@ func Rad2Deg(f float64) float64 {
 
 // Shuffle a slice of points
 func Shuffle(p *[]Point) {
-	rand.Seed(time.Now().UnixMicro())
+	now := time.Now().UnixMicro()
+	rng := rand.New(rand.NewSource(now))
 	n := len(*p)
 	for i := 0; i < 3*n; i++ {
-		j := rand.Intn(n)
-		k := rand.Intn(n)
+		j := rng.Intn(n)
+		k := rng.Intn(n)
 		(*p)[j], (*p)[k] = (*p)[k], (*p)[j]
 	}
 }
