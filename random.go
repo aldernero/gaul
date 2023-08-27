@@ -50,6 +50,12 @@ func NewRng(i int64) Rng {
 	}
 }
 
+func (r *Rng) SetSeed(seed int64) {
+	r.seed = seed
+	r.prng.Seed(seed)
+	r.noise.SetSeed(seed)
+}
+
 func (r *Rng) Gaussian(mean float64, stdev float64) float64 {
 	return rand.NormFloat64()*stdev + mean
 }
