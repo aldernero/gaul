@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ojrac/opensimplex-go"
+	"github.com/aldernero/go-noise/opensimplex"
 )
 
 const (
@@ -18,16 +18,18 @@ const (
 type Rng struct {
 	seed        int64
 	prng        *rand.Rand
-	noise       opensimplex.Noise
+	noise       *opensimplex.Simplex
 	octaves     int
 	persistence float64
 	lacunarity  float64
 	xscale      float64
 	yscale      float64
 	zscale      float64
+	wscale      float64
 	xoffset     float64
 	yoffset     float64
 	zoffset     float64
+	woffset     float64
 }
 
 // Returns a PRNG with a system and noise generator
@@ -35,7 +37,7 @@ func NewRng(i int64) Rng {
 	return Rng{
 		seed:        i,
 		prng:        rand.New(rand.NewSource(i)),
-		noise:       opensimplex.New(i),
+		noise:       opensimplex.NewOpenSimplex2(i),
 		octaves:     defaultOctaves,
 		persistence: defaultPersistence,
 		lacunarity:  defaultLacunarity,
@@ -106,32 +108,32 @@ func (r *Rng) SetNoiseLacunarity(l float64) {
 
 // SignedNoise1D generates 1D noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise1D(x float64) float64 {
-	return r.calcNoise(x, 0, 0)
+	return r.calcNoise1(x)
 }
 
 // SignedNoise2D generates 2D noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise2D(x float64, y float64) float64 {
-	return r.calcNoise(x, y, 0)
+	return r.calcNoise2(x, y)
 }
 
 // SignedNoise3D generates 3D noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise3D(x float64, y float64, z float64) float64 {
-	return r.calcNoise(x, y, z)
+	return r.calcNoise3(x, y, z)
 }
 
 // Noise1D 1D noise values in the range of [0, 1]
 func (r *Rng) Noise1D(x float64) float64 {
-	return Map(-1, 1, 0, 1, r.calcNoise(x, 0, 0))
+	return Map(-1, 1, 0, 1, r.calcNoise1(x))
 }
 
 // Noise2D generates 2D noise values in the range of [0, 1]
 func (r *Rng) Noise2D(x float64, y float64) float64 {
-	return Map(-1, 1, 0, 1, r.calcNoise(x, y, 0))
+	return Map(-1, 1, 0, 1, r.calcNoise2(x, y))
 }
 
 // Noise3D generates 3D noise values in the range of [0, 1]
 func (r *Rng) Noise3D(x float64, y float64, z float64) float64 {
-	return Map(-1, 1, 0, 1, r.calcNoise(x, y, z))
+	return Map(-1, 1, 0, 1, r.calcNoise3(x, y, z))
 }
 
 // UniformRandomPoints generates a list of points whose coordinates
@@ -162,17 +164,53 @@ func (r *Rng) NoisyRandomPoints(num int, threshold float64, rect Rect) []Point {
 	return points
 }
 
-func (r *Rng) calcNoise(x, y, z float64) float64 {
+func (r *Rng) calcNoise1(x float64) float64 {
+	return r.calcNoise(1, x, 0, 0, 0)
+}
+
+func (r *Rng) calcNoise2(x, y float64) float64 {
+	return r.calcNoise(2, x, y, 0, 0)
+}
+
+func (r *Rng) calcNoise3(x, y, z float64) float64 {
+	return r.calcNoise(3, x, y, z, 0)
+}
+
+func (r *Rng) calcNoise4(x, y, z, w float64) float64 {
+	return r.calcNoise(4, x, y, z, w)
+}
+
+func (r *Rng) calcNoise(dim int, x, y, z, w float64) float64 {
 	totalNoise := 0.0
 	totalAmp := 0.0
 	amp := 1.0
 	freq := 1.0
 	for i := 0; i < r.octaves; i++ {
-		totalNoise += r.noise.Eval3(
-			(x+r.xoffset)*r.xscale*freq,
-			(y+r.yoffset)*r.yscale*freq,
-			(z+r.zoffset)*r.zscale*freq,
-		)
+		switch dim {
+		case 1:
+			totalNoise += r.noise.Noise2D(
+				(x+r.xoffset)*r.xscale*freq,
+				0,
+			)
+		case 2:
+			totalNoise += r.noise.Noise2D(
+				(x+r.xoffset)*r.xscale*freq,
+				(y+r.yoffset)*r.yscale*freq,
+			)
+		case 3:
+			totalNoise += r.noise.Noise3D(
+				(x+r.xoffset)*r.xscale*freq,
+				(y+r.yoffset)*r.yscale*freq,
+				(z+r.zoffset)*r.zscale*freq,
+			)
+		case 4:
+			totalNoise += r.noise.Noise4D(
+				(x+r.xoffset)*r.xscale*freq,
+				(y+r.yoffset)*r.yscale*freq,
+				(z+r.zoffset)*r.zscale*freq,
+				(w+r.zoffset)*r.wscale*freq,
+			)
+		}
 		totalAmp += amp
 		amp *= r.persistence
 		freq *= r.lacunarity

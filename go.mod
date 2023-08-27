@@ -3,11 +3,10 @@ module github.com/aldernero/gaul
 go 1.18
 
 require (
+	github.com/aldernero/go-noise v0.0.0-20230827202328-a17ef70bb870
 	github.com/lucasb-eyer/go-colorful v1.2.0
-	github.com/ojrac/opensimplex-go v1.0.2
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.4
 	github.com/tdewolff/canvas v0.0.0-20230725155945-641901f69684
-	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea
 	golang.org/x/image v0.11.0
 )
 
