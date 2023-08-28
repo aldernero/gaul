@@ -3,10 +3,10 @@ module github.com/aldernero/gaul
 go 1.18
 
 require (
-	github.com/aldernero/go-noise v0.0.0-20230827202328-a17ef70bb870
+	github.com/aldernero/go-noise v0.0.0-20230827204149-0806943c2f79
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/stretchr/testify v1.8.4
-	github.com/tdewolff/canvas v0.0.0-20230725155945-641901f69684
+	github.com/tdewolff/canvas v0.0.0-20230824220451-8bc6ac4f4d34
 	golang.org/x/image v0.11.0
 )
 
@@ -26,7 +26,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/tdewolff/minify/v2 v2.12.8 // indirect
 	github.com/tdewolff/parse/v2 v2.6.7 // indirect
-	github.com/wcharczuk/go-chart/v2 v2.1.0 // indirect
+	github.com/wcharczuk/go-chart/v2 v2.1.1 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 	gonum.org/v1/plot v0.13.0 // indirect

@@ -17,8 +17,8 @@ const (
 // Pseudo-random number generator data
 type Rng struct {
 	seed        int64
-	prng        *rand.Rand
-	noise       *opensimplex.Simplex
+	Prng        *rand.Rand
+	Noise       *opensimplex.Simplex
 	octaves     int
 	persistence float64
 	lacunarity  float64
@@ -32,12 +32,12 @@ type Rng struct {
 	woffset     float64
 }
 
-// Returns a PRNG with a system and noise generator
+// Returns a PRNG with a system and Noise generator
 func NewRng(i int64) Rng {
 	return Rng{
 		seed:        i,
-		prng:        rand.New(rand.NewSource(i)),
-		noise:       opensimplex.NewOpenSimplex2(i),
+		Prng:        rand.New(rand.NewSource(i)),
+		Noise:       opensimplex.NewOpenSimplex2(i),
 		octaves:     defaultOctaves,
 		persistence: defaultPersistence,
 		lacunarity:  defaultLacunarity,
@@ -52,52 +52,52 @@ func NewRng(i int64) Rng {
 
 func (r *Rng) SetSeed(seed int64) {
 	r.seed = seed
-	r.prng.Seed(seed)
-	r.noise.SetSeed(seed)
+	r.Prng.Seed(seed)
+	r.Noise.SetSeed(seed)
 }
 
 func (r *Rng) Gaussian(mean float64, stdev float64) float64 {
 	return rand.NormFloat64()*stdev + mean
 }
 
-// The noise scale functions scale the position values passed into the
-// noise PRNG. Typically for screen coordinates scale values in the
-// range of 0.001 to 0.01 produce visually appealing noise
+// The Noise scale functions scale the position values passed into the
+// Noise PRNG. Typically for screen coordinates scale values in the
+// range of 0.001 to 0.01 produce visually appealing Noise
 
-// Scales the x position in noise calculations
+// Scales the x position in Noise calculations
 func (r *Rng) SetNoiseScaleX(scale float64) {
 	r.xscale = scale
 }
 
-// Scales the y position in noise calculations
+// Scales the y position in Noise calculations
 func (r *Rng) SetNoiseScaleY(scale float64) {
 	r.yscale = scale
 }
 
-// Scales the z position in noise calculations
+// Scales the z position in Noise calculations
 func (r *Rng) SetNoiseScaleZ(scale float64) {
 	r.zscale = scale
 }
 
-// The noise offset functions simple increment/decrement the
+// The Noise offset functions simple increment/decrement the
 // position values before scaling
 
-// Offsets the x position in noise calculations
+// Offsets the x position in Noise calculations
 func (r *Rng) SetNoiseOffsetX(offset float64) {
 	r.xoffset = offset
 }
 
-// Offsets the y position in noise calculations
+// Offsets the y position in Noise calculations
 func (r *Rng) SetNoiseOffsetY(offset float64) {
 	r.yoffset = offset
 }
 
-// Offsets the z position in noise calculations
+// Offsets the z position in Noise calculations
 func (r *Rng) SetNoiseOffsetZ(offset float64) {
 	r.zoffset = offset
 }
 
-// Number of steps when calculating fractal noise
+// Number of steps when calculating fractal Noise
 func (r *Rng) SetNoiseOctaves(i int) {
 	r.octaves = i
 }
@@ -112,32 +112,32 @@ func (r *Rng) SetNoiseLacunarity(l float64) {
 	r.lacunarity = l
 }
 
-// SignedNoise1D generates 1D noise values in the range of [-1, 1]
+// SignedNoise1D generates 1D Noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise1D(x float64) float64 {
 	return r.calcNoise1(x)
 }
 
-// SignedNoise2D generates 2D noise values in the range of [-1, 1]
+// SignedNoise2D generates 2D Noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise2D(x float64, y float64) float64 {
 	return r.calcNoise2(x, y)
 }
 
-// SignedNoise3D generates 3D noise values in the range of [-1, 1]
+// SignedNoise3D generates 3D Noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise3D(x float64, y float64, z float64) float64 {
 	return r.calcNoise3(x, y, z)
 }
 
-// Noise1D 1D noise values in the range of [0, 1]
+// Noise1D 1D Noise values in the range of [0, 1]
 func (r *Rng) Noise1D(x float64) float64 {
 	return Map(-1, 1, 0, 1, r.calcNoise1(x))
 }
 
-// Noise2D generates 2D noise values in the range of [0, 1]
+// Noise2D generates 2D Noise values in the range of [0, 1]
 func (r *Rng) Noise2D(x float64, y float64) float64 {
 	return Map(-1, 1, 0, 1, r.calcNoise2(x, y))
 }
 
-// Noise3D generates 3D noise values in the range of [0, 1]
+// Noise3D generates 3D Noise values in the range of [0, 1]
 func (r *Rng) Noise3D(x float64, y float64, z float64) float64 {
 	return Map(-1, 1, 0, 1, r.calcNoise3(x, y, z))
 }
@@ -194,23 +194,23 @@ func (r *Rng) calcNoise(dim int, x, y, z, w float64) float64 {
 	for i := 0; i < r.octaves; i++ {
 		switch dim {
 		case 1:
-			totalNoise += r.noise.Noise2D(
+			totalNoise += r.Noise.Noise2D(
 				(x+r.xoffset)*r.xscale*freq,
 				0,
 			)
 		case 2:
-			totalNoise += r.noise.Noise2D(
+			totalNoise += r.Noise.Noise2D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 			)
 		case 3:
-			totalNoise += r.noise.Noise3D(
+			totalNoise += r.Noise.Noise3D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 				(z+r.zoffset)*r.zscale*freq,
 			)
 		case 4:
-			totalNoise += r.noise.Noise4D(
+			totalNoise += r.Noise.Noise4D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 				(z+r.zoffset)*r.zscale*freq,
