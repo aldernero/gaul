@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/aldernero/go-noise v0.0.0-20230827204149-0806943c2f79
 	github.com/lucasb-eyer/go-colorful v1.2.0
+	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/stretchr/testify v1.8.4
 	github.com/tdewolff/canvas v0.0.0-20230824220451-8bc6ac4f4d34
 	golang.org/x/image v0.11.0
@@ -17,6 +18,7 @@ require (
 	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/benoitkugler/textlayout v0.3.0 // indirect
 	github.com/benoitkugler/textprocessing v0.0.3 // indirect
+	github.com/blend/go-sdk v1.20220411.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/go-fonts/latin-modern v0.3.1 // indirect
