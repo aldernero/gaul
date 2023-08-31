@@ -37,7 +37,7 @@ func NewRng(i int64) Rng {
 	return Rng{
 		seed:        i,
 		Prng:        rand.New(rand.NewSource(i)),
-		Noise:       opensimplex.NewNormalized(i),
+		Noise:       opensimplex.New(i),
 		octaves:     defaultOctaves,
 		persistence: defaultPersistence,
 		lacunarity:  defaultLacunarity,
