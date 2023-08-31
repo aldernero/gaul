@@ -52,7 +52,7 @@ func NewRng(i int64) Rng {
 
 func (r *Rng) SetSeed(seed int64) {
 	r.seed = seed
-	r.Prng.Seed(seed)
+	r.Prng = rand.New(rand.NewSource(seed))
 	r.Noise = opensimplex.NewNormalized(seed)
 }
 
