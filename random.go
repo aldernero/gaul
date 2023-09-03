@@ -14,7 +14,7 @@ const (
 	defaultLacunarity  = 2.0
 )
 
-// Pseudo-random number generator data
+// Rng is a random number generator with a system PRNG and simplex noise
 type Rng struct {
 	seed        int64
 	Prng        *rand.Rand
@@ -64,17 +64,17 @@ func (r *Rng) Gaussian(mean float64, stdev float64) float64 {
 // Noise PRNG. Typically for screen coordinates scale values in the
 // range of 0.001 to 0.01 produce visually appealing Noise
 
-// Scales the x position in Noise calculations
+// SetNoiseScaleX scales the x position in Noise calculations
 func (r *Rng) SetNoiseScaleX(scale float64) {
 	r.xscale = scale
 }
 
-// Scales the y position in Noise calculations
+// SetNoiseScaleY scales the y position in Noise calculations
 func (r *Rng) SetNoiseScaleY(scale float64) {
 	r.yscale = scale
 }
 
-// Scales the z position in Noise calculations
+// SetNoiseScaleZ scales the z position in Noise calculations
 func (r *Rng) SetNoiseScaleZ(scale float64) {
 	r.zscale = scale
 }
@@ -82,32 +82,32 @@ func (r *Rng) SetNoiseScaleZ(scale float64) {
 // The Noise offset functions simple increment/decrement the
 // position values before scaling
 
-// Offsets the x position in Noise calculations
+// SetNoiseOffsetX offsets the x position in Noise calculations
 func (r *Rng) SetNoiseOffsetX(offset float64) {
 	r.xoffset = offset
 }
 
-// Offsets the y position in Noise calculations
+// SetNoiseOffsetY offsets the y position in Noise calculations
 func (r *Rng) SetNoiseOffsetY(offset float64) {
 	r.yoffset = offset
 }
 
-// Offsets the z position in Noise calculations
+// SetNoiseOffsetZ offsets the z position in Noise calculations
 func (r *Rng) SetNoiseOffsetZ(offset float64) {
 	r.zoffset = offset
 }
 
-// Number of steps when calculating fractal Noise
+// SetNoiseOctaves sets the number of steps when calculating fractal Noise
 func (r *Rng) SetNoiseOctaves(i int) {
 	r.octaves = i
 }
 
-// How amplitude scales with octaves
+// SetNoisePersistence sets how amplitude scales with octaves
 func (r *Rng) SetNoisePersistence(p float64) {
 	r.persistence = p
 }
 
-// How frequency scales with octaves
+// SetNoiseLacunarity sets how frequency scales with octaves
 func (r *Rng) SetNoiseLacunarity(l float64) {
 	r.lacunarity = l
 }
