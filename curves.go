@@ -6,13 +6,13 @@ import "math"
 // a cutoff ratio, and the number of steps to use in the
 // calculation.
 func Chaikin(c Curve, q float64, n int) Curve {
-	points := []Point{}
+	points := make([]Point, 0)
 	// Start with control points
 	points = append(points, c.Points...)
 	left := q / 2
 	right := 1 - (q / 2)
 	for i := 0; i < n; i++ {
-		newPoints := []Point{}
+		newPoints := make([]Point, 0)
 		for j := 0; j < len(points)-1; j++ {
 			p1 := points[j]
 			p2 := points[j+1]
@@ -74,7 +74,7 @@ func GenLissajous(l Lissajous, n int, offset Point, s float64) Curve {
 // some of the outside points on the curve
 // See https://en.wikipedia.org/wiki/Padua_points for more details.
 func PaduaPoints(n int) []Point {
-	points := []Point{}
+	points := make([]Point, 0)
 	for i := 0; i <= n; i++ {
 		delta := 0
 		if n%2 == 1 && i%2 == 1 {
@@ -96,7 +96,7 @@ func PaduaPoints(n int) []Point {
 
 // PulsarPlot transforms a slice of curves into a slice of curves representing the segments that make up a pulsar plot
 func PulsarPlot(curves []Curve) []Curve {
-	result := []Curve{}
+	result := make([]Curve, 0)
 	if len(curves) == 0 {
 		return result
 	}
