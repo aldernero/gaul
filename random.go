@@ -32,7 +32,7 @@ type Rng struct {
 	woffset     float64
 }
 
-// Returns a PRNG with a system and Noise generator
+// NewRng returns a PRNG with a system and Noise generator
 func NewRng(i int64) Rng {
 	return Rng{
 		seed:        i,
