@@ -15,6 +15,7 @@ const (
 	Sqrt2 = math.Sqrt2
 	Sqrt3 = 1.7320508075688772
 	Smol  = 1e-9
+	Phi   = 1.618033988749895
 )
 
 // Gcd calculates the greatest common divisor

@@ -728,6 +728,24 @@ func (r Rect) Center() Point {
 	return Point{X: r.X + 0.5*r.W, Y: r.Y + 0.5*r.H}
 }
 
+// GoldenSubdivision returns two rectangles using the golden ratio to calculate where to split the rectangle
+func (r Rect) GoldenSubdivision() (Rect, Rect) {
+	var a, b Rect
+	var w, h float64
+	if r.W >= r.H {
+		w = r.W / Phi
+		h = r.H
+		a = Rect{X: r.X, Y: r.Y, W: w, H: h}
+		b = Rect{X: r.X + w, Y: r.Y, W: r.W - w, H: h}
+	} else {
+		w = r.W
+		h = r.H / Phi
+		a = Rect{X: r.X, Y: r.Y, W: w, H: h}
+		b = Rect{X: r.X, Y: r.Y + h, W: w, H: r.H - h}
+	}
+	return a, b
+}
+
 // Triangle functions
 
 // ToCurve calculates a closed curve with points corresponding to the vertices of the triangle
