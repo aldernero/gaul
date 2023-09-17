@@ -2,6 +2,10 @@ package gaul
 
 import "math"
 
+const (
+	defaultBezierResolution = 100
+)
+
 // Chaikin senerates a Chaikin curve given a set of control points,
 // a cutoff ratio, and the number of steps to use in the
 // calculation.
@@ -122,4 +126,45 @@ func PulsarPlot(curves []Curve) []Curve {
 		}
 	}
 	return result
+}
+
+type quadBezier struct {
+	p0, p1, p2 Point
+	resolution int
+}
+
+func (b quadBezier) Curve() Curve {
+	var result Curve
+	ts := Linspace(0, 1, b.resolution, true)
+	l1 := Line{P: b.p0, Q: b.p1}
+	l2 := Line{P: b.p1, Q: b.p2}
+	for _, t := range ts {
+		q0 := l1.Lerp(t)
+		q1 := l2.Lerp(t)
+		q := Line{P: q0, Q: q1}.Lerp(t)
+		result.AddPoint(q.X, q.Y)
+	}
+	return result
+}
+
+// QuadBezier generates a quadratic Bezier curve between two points given a control point
+func QuadBezier(p, q, c Point) Curve {
+	qb := quadBezier{
+		p0:         p,
+		p1:         c,
+		p2:         q,
+		resolution: defaultBezierResolution,
+	}
+	return qb.Curve()
+}
+
+// QuadBezierWithResolution generates a quadratic Bezier curve with a specific resolution
+func QuadBezierWithResolution(p, q, c Point, resolution int) Curve {
+	qb := quadBezier{
+		p0:         p,
+		p1:         c,
+		p2:         q,
+		resolution: resolution,
+	}
+	return qb.Curve()
 }
