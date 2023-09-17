@@ -728,6 +728,23 @@ func (r Rect) Center() Point {
 	return Point{X: r.X + 0.5*r.W, Y: r.Y + 0.5*r.H}
 }
 
+func (r Rect) Subdivide(perc float64) (Rect, Rect) {
+	var a, b Rect
+	var w, h float64
+	if r.W >= r.H {
+		w = r.W * perc
+		h = r.H
+		a = Rect{X: r.X, Y: r.Y, W: w, H: h}
+		b = Rect{X: r.X + w, Y: r.Y, W: r.W - w, H: h}
+	} else {
+		w = r.W
+		h = r.H * perc
+		a = Rect{X: r.X, Y: r.Y, W: w, H: h}
+		b = Rect{X: r.X, Y: r.Y + h, W: w, H: r.H - h}
+	}
+	return a, b
+}
+
 // GoldenSubdivision returns two rectangles using the golden ratio to calculate where to split the rectangle
 func (r Rect) GoldenSubdivision() (Rect, Rect) {
 	var a, b Rect
@@ -753,6 +770,14 @@ func (t Triangle) ToCurve() Curve {
 	return Curve{
 		Points: []Point{t.A, t.B, t.C},
 		Closed: true,
+	}
+}
+
+func (t Triangle) Reverse() Triangle {
+	return Triangle{
+		A: t.C,
+		B: t.B,
+		C: t.A,
 	}
 }
 
