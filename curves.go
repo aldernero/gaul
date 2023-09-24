@@ -128,6 +128,8 @@ func PulsarPlot(curves []Curve) []Curve {
 	return result
 }
 
+// Bezier curves
+
 type quadBezier struct {
 	p0, p1, p2 Point
 	resolution int
@@ -167,4 +169,51 @@ func QuadBezierWithResolution(p, q, c Point, resolution int) Curve {
 		resolution: resolution,
 	}
 	return qb.Curve()
+}
+
+type cubicBezier struct {
+	p0, p1, p2, p3 Point
+	resolution     int
+}
+
+func (b cubicBezier) Curve() Curve {
+	var result Curve
+	ts := Linspace(0, 1, b.resolution, true)
+	l1 := Line{P: b.p0, Q: b.p1}
+	l2 := Line{P: b.p1, Q: b.p2}
+	l3 := Line{P: b.p2, Q: b.p3}
+	for _, t := range ts {
+		q0 := l1.Lerp(t)
+		q1 := l2.Lerp(t)
+		q2 := l3.Lerp(t)
+		q01 := Line{P: q0, Q: q1}.Lerp(t)
+		q12 := Line{P: q1, Q: q2}.Lerp(t)
+		q := Line{P: q01, Q: q12}.Lerp(t)
+		result.AddPoint(q.X, q.Y)
+	}
+	return result
+}
+
+// CubicBezier generates a cubic Bezier curve between two points given two control points
+func CubicBezier(p, q, c1, c2 Point) Curve {
+	cb := cubicBezier{
+		p0:         p,
+		p1:         c1,
+		p2:         c2,
+		p3:         q,
+		resolution: defaultBezierResolution,
+	}
+	return cb.Curve()
+}
+
+// CubicBezierWithResolution generates a cubic Bezier curve with a specific resolution
+func CubicBezierWithResolution(p, q, c1, c2 Point, resolution int) Curve {
+	cb := cubicBezier{
+		p0:         p,
+		p1:         c1,
+		p2:         c2,
+		p3:         q,
+		resolution: resolution,
+	}
+	return cb.Curve()
 }
