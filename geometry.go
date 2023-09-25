@@ -598,6 +598,17 @@ func (c *Curve) Boundary() Rect {
 	return Rect{X: minX, Y: minY, W: maxX - minX, H: maxY - minY}
 }
 
+func (c *Curve) Reverse() {
+	n := len(c.Points)
+	for i := 0; i < n/2; i++ {
+		c.Points[i], c.Points[n-1-i] = c.Points[n-1-i], c.Points[i]
+	}
+}
+
+func (c *Curve) Stitch(d *Curve) {
+	c.Points = append(c.Points, d.Points...)
+}
+
 // Circle functions
 
 // Draw draws the circle given a canvas context
