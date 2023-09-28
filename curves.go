@@ -149,7 +149,7 @@ func (b quadBezier) Curve() Curve {
 	return result
 }
 
-// QuadBezier generates a quadratic Bezier curve between two points given a control point
+// QuadBezier generates a quadratic Bézier curve between two points given a control point
 func QuadBezier(p, q, c Point) Curve {
 	qb := quadBezier{
 		p0:         p,
@@ -160,7 +160,7 @@ func QuadBezier(p, q, c Point) Curve {
 	return qb.Curve()
 }
 
-// QuadBezierWithResolution generates a quadratic Bezier curve with a specific resolution
+// QuadBezierWithResolution generates a quadratic Bézier curve with a specific resolution
 func QuadBezierWithResolution(p, q, c Point, resolution int) Curve {
 	qb := quadBezier{
 		p0:         p,
@@ -194,7 +194,7 @@ func (b cubicBezier) Curve() Curve {
 	return result
 }
 
-// CubicBezier generates a cubic Bezier curve between two points given two control points
+// CubicBezier generates a cubic Bézier curve between two points given two control points
 func CubicBezier(p, q, c1, c2 Point) Curve {
 	cb := cubicBezier{
 		p0:         p,
@@ -206,7 +206,7 @@ func CubicBezier(p, q, c1, c2 Point) Curve {
 	return cb.Curve()
 }
 
-// CubicBezierWithResolution generates a cubic Bezier curve with a specific resolution
+// CubicBezierWithResolution generates a cubic Bézier curve with a specific resolution
 func CubicBezierWithResolution(p, q, c1, c2 Point, resolution int) Curve {
 	cb := cubicBezier{
 		p0:         p,
@@ -216,4 +216,72 @@ func CubicBezierWithResolution(p, q, c1, c2 Point, resolution int) Curve {
 		resolution: resolution,
 	}
 	return cb.Curve()
+}
+
+// Quartic bezier curve
+
+type quarticBezier struct {
+	p0, p1, p2, p3, p4 Point
+	resolution         int
+}
+
+func (b quarticBezier) Curve() Curve {
+	var result Curve
+	ts := Linspace(0, 1, b.resolution, true)
+	l1 := Line{P: b.p0, Q: b.p1}
+	l2 := Line{P: b.p1, Q: b.p2}
+	l3 := Line{P: b.p2, Q: b.p3}
+	l4 := Line{P: b.p3, Q: b.p4}
+	for _, t := range ts {
+		q0 := l1.Lerp(t)
+		q1 := l2.Lerp(t)
+		q2 := l3.Lerp(t)
+		q3 := l4.Lerp(t)
+		q01 := Line{P: q0, Q: q1}.Lerp(t)
+		q12 := Line{P: q1, Q: q2}.Lerp(t)
+		q23 := Line{P: q2, Q: q3}.Lerp(t)
+		q012 := Line{P: q01, Q: q12}.Lerp(t)
+		q123 := Line{P: q12, Q: q23}.Lerp(t)
+		q := Line{P: q012, Q: q123}.Lerp(t)
+		result.AddPoint(q.X, q.Y)
+	}
+	return result
+}
+
+// QuarticBezier generates a quartic Bézier curve between two points given three control points
+func QuarticBezier(p, q, c1, c2, c3 Point) Curve {
+	qb := quarticBezier{
+		p0:         p,
+		p1:         c1,
+		p2:         c2,
+		p3:         c3,
+		p4:         q,
+		resolution: defaultBezierResolution,
+	}
+	return qb.Curve()
+}
+
+// QuarticBezierWithResolution generates a quartic Bézier curve with a specific resolution
+func QuarticBezierWithResolution(p, q, c1, c2, c3 Point, resolution int) Curve {
+	qb := quarticBezier{
+		p0:         p,
+		p1:         c1,
+		p2:         c2,
+		p3:         c3,
+		p4:         q,
+		resolution: resolution,
+	}
+	return qb.Curve()
+}
+
+func QuarticBezierWithTriangleControl(q, p Point, tri Triangle) Curve {
+	qb := quarticBezier{
+		p0:         q,
+		p1:         p,
+		p2:         tri.A,
+		p3:         tri.B,
+		p4:         tri.C,
+		resolution: defaultBezierResolution,
+	}
+	return qb.Curve()
 }
