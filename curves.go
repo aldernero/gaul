@@ -274,13 +274,13 @@ func QuarticBezierWithResolution(p, q, c1, c2, c3 Point, resolution int) Curve {
 	return qb.Curve()
 }
 
-func QuarticBezierWithTriangleControl(q, p Point, tri Triangle) Curve {
+func QuarticBezierWithTriangleControl(p, q Point, tri Triangle) Curve {
 	qb := quarticBezier{
-		p0:         q,
-		p1:         p,
-		p2:         tri.A,
-		p3:         tri.B,
-		p4:         tri.C,
+		p0:         p,
+		p1:         tri.A,
+		p2:         tri.B,
+		p3:         tri.C,
+		p4:         q,
 		resolution: defaultBezierResolution,
 	}
 	return qb.Curve()
