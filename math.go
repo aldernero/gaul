@@ -7,6 +7,16 @@ type Vec2 struct {
 	Y float64
 }
 
+// Vec2FromPoint returns a vector from the origin to p
+func Vec2FromPoint(p Point) Vec2 {
+	return Vec2{X: p.X, Y: p.Y}
+}
+
+// Vec2FromPoints returns a vector from p to q
+func Vec2FromPoints(p, q Point) Vec2 {
+	return Vec2{X: q.X - p.X, Y: q.Y - p.Y}
+}
+
 func (v Vec2) Add(u Vec2) Vec2 {
 	return Vec2{X: v.X + u.X, Y: v.Y + u.Y}
 }
