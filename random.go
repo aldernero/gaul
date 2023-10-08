@@ -17,7 +17,7 @@ const (
 // Rng is a random number generator with a system PRNG and simplex noise
 type Rng struct {
 	seed        int64
-	Prng        *rand.Rand
+	Prng        LFSRLarge
 	Noise       opensimplex.Noise
 	octaves     int
 	persistence float64
@@ -36,7 +36,7 @@ type Rng struct {
 func NewRng(i int64) Rng {
 	return Rng{
 		seed:        i,
-		Prng:        rand.New(rand.NewSource(i)),
+		Prng:        NewLFSRLargeWithSeed(uint64(i)),
 		Noise:       opensimplex.New(i),
 		octaves:     defaultOctaves,
 		persistence: defaultPersistence,
@@ -52,7 +52,7 @@ func NewRng(i int64) Rng {
 
 func (r *Rng) SetSeed(seed int64) {
 	r.seed = seed
-	r.Prng = rand.New(rand.NewSource(seed))
+	r.Prng = NewLFSRLargeWithSeed(uint64(seed))
 	r.Noise = opensimplex.NewNormalized(seed)
 }
 
