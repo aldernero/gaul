@@ -1,9 +1,14 @@
 package gaul
 
-import "math"
+import (
+	"math"
+
+	"github.com/aldernero/interp"
+)
 
 const (
 	defaultBezierResolution = 100
+	defaultSplineResolution = 100
 )
 
 // Chaikin senerates a Chaikin curve given a set of control points,
@@ -284,4 +289,56 @@ func QuarticBezierWithTriangleControl(p, q Point, tri Triangle) Curve {
 		resolution: defaultBezierResolution,
 	}
 	return qb.Curve()
+}
+
+// Splines
+
+// CubicSpline represents a cubic spline
+type CubicSpline struct {
+	spline interp.CubicSpline
+	res    int
+}
+
+// NewCubicSpline creates a cubic spline from a set of points
+func NewCubicSpline(points []Point) CubicSpline {
+	n := len(points)
+	xs := make([]float64, n)
+	ys := make([]float64, n)
+	for i, p := range points {
+		xs[i] = p.X
+		ys[i] = p.Y
+	}
+	cs, _ := interp.NewCubicSpline(xs, ys)
+	return CubicSpline{spline: cs, res: defaultSplineResolution}
+}
+
+// NewCubicSplineWithResolution creates a cubic spline from a set of points
+// with a specific resolution
+func NewCubicSplineWithResolution(points []Point, res int) CubicSpline {
+	n := len(points)
+	xs := make([]float64, n)
+	ys := make([]float64, n)
+	for i, p := range points {
+		xs[i] = p.X
+		ys[i] = p.Y
+	}
+	cs, _ := interp.NewCubicSpline(xs, ys)
+	return CubicSpline{spline: cs, res: res}
+}
+
+// At evaluates the spline at a given x value
+func (cs CubicSpline) At(x float64) float64 {
+	return cs.spline.Eval(x)
+}
+
+// ToCurve converts the spline to a curve
+func (cs CubicSpline) ToCurve() Curve {
+	var result Curve
+	min, max := cs.spline.GetMinMaxX()
+	xs := Linspace(min, max, cs.res, true)
+	for _, x := range xs {
+		y := cs.spline.Eval(x)
+		result.AddPoint(x, y)
+	}
+	return result
 }
