@@ -326,6 +326,18 @@ func NewCubicSplineWithResolution(points []Point, res int) CubicSpline {
 	return CubicSpline{spline: cs, res: res}
 }
 
+func NewRegularCubicSpline(points []Point) CubicSpline {
+	n := len(points)
+	xs := make([]float64, n)
+	ys := make([]float64, n)
+	for i, p := range points {
+		xs[i] = p.X
+		ys[i] = p.Y
+	}
+	cs, _ := interp.NewRegularCubicSpline(xs, ys)
+	return CubicSpline{spline: cs, res: defaultSplineResolution}
+}
+
 // At evaluates the spline at a given x value
 func (cs CubicSpline) At(x float64) float64 {
 	return cs.spline.Eval(x)
