@@ -114,32 +114,32 @@ func (r *Rng) SetNoiseLacunarity(l float64) {
 
 // SignedNoise1D generates 1D Noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise1D(x float64) float64 {
-	return r.calcNoise1(x)
+	return Map(0, 1, -1, 1, r.calcNoise1(x))
 }
 
 // SignedNoise2D generates 2D Noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise2D(x float64, y float64) float64 {
-	return r.calcNoise2(x, y)
+	return Map(0, 1, -1, 1, r.calcNoise2(x, y))
 }
 
 // SignedNoise3D generates 3D Noise values in the range of [-1, 1]
 func (r *Rng) SignedNoise3D(x float64, y float64, z float64) float64 {
-	return r.calcNoise3(x, y, z)
+	return Map(0, 1, -1, -1, r.calcNoise3(x, y, z))
 }
 
 // Noise1D 1D Noise values in the range of [0, 1]
 func (r *Rng) Noise1D(x float64) float64 {
-	return Map(-1, 1, 0, 1, r.calcNoise1(x))
+	return r.calcNoise1(x)
 }
 
 // Noise2D generates 2D Noise values in the range of [0, 1]
 func (r *Rng) Noise2D(x float64, y float64) float64 {
-	return Map(-1, 1, 0, 1, r.calcNoise2(x, y))
+	return r.calcNoise2(x, y)
 }
 
 // Noise3D generates 3D Noise values in the range of [0, 1]
 func (r *Rng) Noise3D(x float64, y float64, z float64) float64 {
-	return Map(-1, 1, 0, 1, r.calcNoise3(x, y, z))
+	return r.calcNoise3(x, y, z)
 }
 
 // UniformRandomPoints generates a list of points whose coordinates
