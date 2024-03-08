@@ -17,6 +17,10 @@ func Vec2FromPoints(p, q Point) Vec2 {
 	return Vec2{X: q.X - p.X, Y: q.Y - p.Y}
 }
 
+func Vec2FromLine(l Line) Vec2 {
+	return Vec2FromPoints(l.P, l.Q)
+}
+
 func (v Vec2) Add(u Vec2) Vec2 {
 	return Vec2{X: v.X + u.X, Y: v.Y + u.Y}
 }
