@@ -97,3 +97,36 @@ func (p RegularPolygon) Draw(ctx *canvas.Context) {
 	curve := p.ToCurve()
 	curve.Draw(ctx)
 }
+
+type Polygon []Point
+
+func (p Polygon) Area() float64 {
+	// Shoelace formula
+	n := len(p)
+	area := 0.0
+	for i := 0; i < n; i++ {
+		area += p[i].X*p[(i+1)%n].Y - p[(i+1)%n].X*p[i].Y
+	}
+	return 0.5 * math.Abs(area)
+}
+
+func (p Polygon) Centroid() Point {
+	n := len(p)
+	var cx, cy float64
+	A := p.Area()
+	for i := 0; i < n-1; i++ {
+		cx += (p[i].X + p[i+1].X) * (p[i].X*p[i+1].Y - p[i+1].X*p[i].Y)
+		cy += (p[i].Y + p[i+1].Y) * (p[i].X*p[i+1].Y - p[i+1].X*p[i].Y)
+	}
+	return Point{X: cx / (6 * A), Y: cy / (6 * A)}
+}
+
+func (p Polygon) Perimeter() float64 {
+	n := len(p)
+	var perimeter float64
+	for i := 0; i < n-1; i++ {
+		perimeter += Distance(p[i], p[i+1])
+	}
+	perimeter += Distance(p[n-1], p[0])
+	return perimeter
+}
