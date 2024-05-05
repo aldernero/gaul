@@ -101,10 +101,10 @@ func (p RegularPolygon) Draw(ctx *canvas.Context) {
 type Polygon []Point
 
 func (p Polygon) Area() float64 {
-	// Shoelace formula
+	// shoelace formula
 	n := len(p)
 	area := 0.0
-	for i := 0; i < n-1; i++ {
+	for i := 0; i < n; i++ {
 		area += p[i].X*p[(i+1)%n].Y - p[(i+1)%n].X*p[i].Y
 	}
 	return 0.5 * math.Abs(area)
@@ -114,13 +114,13 @@ func (p Polygon) Centroid() Point {
 	n := len(p)
 	var cx, cy float64
 	A := p.Area()
-	for i := 0; i < n-1; i++ {
-		cx += (p[i].X + p[i+1].X) * (p[i].X*p[i+1].Y - p[i+1].X*p[i].Y)
-		cy += (p[i].Y + p[i+1].Y) * (p[i].X*p[i+1].Y - p[i+1].X*p[i].Y)
+	for i := 0; i < n; i++ {
+		cx += (p[i].X + p[(i+1)%n].X) * (p[i].X*p[(i+1)%n].Y - p[(i+1)%n].X*p[i].Y)
+		cy += (p[i].Y + p[(i+1)%n].Y) * (p[i].X*p[(i+1)%n].Y - p[(i+1)%n].X*p[i].Y)
 	}
-	cx += (p[n-1].X + p[0].X) * (p[n-1].X*p[0].Y - p[0].X*p[n-1].Y)
-	cy += (p[n-1].Y + p[0].Y) * (p[n-1].X*p[0].Y - p[0].X*p[n-1].Y)
-	return Point{X: cx / (6 * A), Y: cy / (6 * A)}
+	cx /= 6 * A
+	cy /= 6 * A
+	return Point{X: cx, Y: cy}
 }
 
 func (p Polygon) Perimeter() float64 {
