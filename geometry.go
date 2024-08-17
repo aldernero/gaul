@@ -571,15 +571,42 @@ func (c *Curve) Copy() Curve {
 	return curve
 }
 
+func (c *Curve) Area() float64 {
+	if !c.Closed {
+		return math.NaN()
+	}
+	// shoelace formula
+	n := len(c.Points)
+	area := 0.0
+	for i := 0; i < n; i++ {
+		area += c.Points[i].X*c.Points[(i+1)%n].Y - c.Points[(i+1)%n].X*c.Points[i].Y
+	}
+	return 0.5 * math.Abs(area)
+}
+
 // Centroid returns the centroid for the curve
 func (c *Curve) Centroid() Point {
-	N := float64(len(c.Points))
-	var totalX, totalY float64
-	for _, p := range c.Points {
-		totalX += p.X
-		totalY += p.Y
+	if !c.Closed {
+		N := float64(len(c.Points))
+		var totalX, totalY float64
+		for _, p := range c.Points {
+			totalX += p.X
+			totalY += p.Y
+		}
+		return Point{X: totalX / N, Y: totalY / N}
 	}
-	return Point{X: totalX / N, Y: totalY / N}
+	N := len(c.Points)
+	var cx, cy float64
+	A := c.Area()
+	for i := 0; i < N; i++ {
+		p := c.Points[i]
+		q := c.Points[(i+1)%N]
+		cx += (p.X + q.X) * (p.X*q.Y - q.X*p.Y)
+		cy += (p.Y + q.Y) * (p.X*q.Y - q.X*p.Y)
+	}
+	cx /= 6 * A
+	cy /= 6 * A
+	return Point{X: cx, Y: cy}
 }
 
 // Boundary returns the smallest rect that contains all the points in the curve
