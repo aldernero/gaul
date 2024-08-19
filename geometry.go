@@ -235,17 +235,7 @@ func (l Line) PerpendicularAt(percentage float64, length float64) Line {
 		X: NoTinyVals(point.X + sinOffset),
 		Y: NoTinyVals(point.Y - cosOffset),
 	}
-	if p.X <= q.X {
-		return Line{
-			P: p,
-			Q: q,
-		}
-	} else {
-		return Line{
-			P: q,
-			Q: p,
-		}
-	}
+	return Line{P: p, Q: q}
 }
 
 // PerpendicularBisector calculates a line with a given length at the midpoint of the original line that is also
