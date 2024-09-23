@@ -44,3 +44,17 @@ func BenchmarkStandardRand_Float64(b *testing.B) {
 		rand.Float64()
 	}
 }
+
+func BenchmarkNoise(b *testing.B) {
+	seed := int64(1234)
+	rng := NewRng(seed)
+	xs := make([]float64, 1000)
+	ys := make([]float64, 1000)
+	for i := 0; i < 1000; i++ {
+		xs[i] = rand.Float64()
+		ys[i] = rand.Float64()
+	}
+	for i := 0; i < b.N; i++ {
+		rng.Noise2D(xs[i%1000], ys[i%1000])
+	}
+}

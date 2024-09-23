@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ojrac/opensimplex-go"
+	"github.com/peterhellberg/gfx"
 )
 
 const (
@@ -19,6 +20,7 @@ type Rng struct {
 	seed        int64
 	Prng        LFSRLarge
 	Noise       opensimplex.Noise
+	Simplex     *gfx.SimplexNoise
 	octaves     int
 	persistence float64
 	lacunarity  float64
@@ -38,6 +40,7 @@ func NewRng(i int64) Rng {
 		seed:        i,
 		Prng:        NewLFSRLargeWithSeed(uint64(i)),
 		Noise:       opensimplex.New(i),
+		Simplex:     gfx.NewSimplexNoise(i),
 		octaves:     defaultOctaves,
 		persistence: defaultPersistence,
 		lacunarity:  defaultLacunarity,
@@ -53,7 +56,9 @@ func NewRng(i int64) Rng {
 func (r *Rng) SetSeed(seed int64) {
 	r.seed = seed
 	r.Prng = NewLFSRLargeWithSeed(uint64(seed))
+	r.Prng.Next()
 	r.Noise = opensimplex.NewNormalized(seed)
+	r.Simplex = gfx.NewSimplexNoise(seed)
 }
 
 func (r *Rng) Gaussian(mean float64, stdev float64) float64 {
@@ -194,23 +199,23 @@ func (r *Rng) calcNoise(dim int, x, y, z, w float64) float64 {
 	for i := 0; i < r.octaves; i++ {
 		switch dim {
 		case 1:
-			totalNoise += r.Noise.Eval2(
+			totalNoise += r.Simplex.Noise2D(
 				(x+r.xoffset)*r.xscale*freq,
 				0,
 			)
 		case 2:
-			totalNoise += r.Noise.Eval2(
+			totalNoise += r.Simplex.Noise2D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 			)
 		case 3:
-			totalNoise += r.Noise.Eval3(
+			totalNoise += r.Simplex.Noise3D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 				(z+r.zoffset)*r.zscale*freq,
 			)
 		case 4:
-			totalNoise += r.Noise.Eval4(
+			totalNoise += r.Simplex.Noise4D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 				(z+r.zoffset)*r.zscale*freq,
