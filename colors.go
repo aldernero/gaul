@@ -188,6 +188,39 @@ func (sp *SinePalette) Palette(num int) []color.Color {
 	return palette
 }
 
+func (sp *SinePalette) ToGridPng() (string, error) {
+	w := 1024.0
+	h := 1024.0
+	c := canvas.New(w, h)
+	ctx := canvas.NewContext(c)
+	ctx.SetStrokeWidth(0.1)
+	minPower := 0.0
+	maxPower := math.Floor(math.Log2(h)) - 1
+	y := 0.0
+	dy := h / float64(maxPower)
+	power := minPower
+	for y <= h {
+		n := math.Pow(2, power)
+		x := 0.0
+		dx := w / n
+		for x <= w {
+			k := sp.ColorAt((x + 0.5*dx) / w)
+			ctx.SetFillColor(k)
+			ctx.SetFillColor(k)
+			ctx.DrawPath(x, y, canvas.Rectangle(dx, dy))
+			ctx.FillStroke()
+			x += dx
+		}
+		power += 1.0
+		y += dy
+	}
+	fname := "gaul-sinepalette-grid_" + GetTimestampString() + ".png"
+	if err := renderers.Write(fname, c); err != nil {
+		return fname, err
+	}
+	return fname, nil
+}
+
 func (sp *SinePalette) ToPng() (string, error) {
 	w := 285.0
 	h := 55.0

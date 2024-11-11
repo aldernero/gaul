@@ -2,6 +2,7 @@ package gaul
 
 import (
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
 )
 
@@ -46,4 +47,17 @@ func TestGradient_LinearPaletteStrings(t *testing.T) {
 	grad = NewGradientFromNamed([]string{"red", "green", "blue"})
 	palette = grad.LinearPaletteStrings(3)
 	assert.Equal(t, []string{"#ff0000", "#008000", "#0000ff"}, palette)
+}
+
+func TestSinePalette_ToGridPng(t *testing.T) {
+	a := Vec3{rand.Float64(), rand.Float64(), rand.Float64()}
+	b := Vec3{rand.Float64(), rand.Float64(), rand.Float64()}
+	c := Vec3{rand.Float64(), rand.Float64(), rand.Float64()}
+	d := Vec3{rand.Float64(), rand.Float64(), rand.Float64()}
+	pal := NewSinePalette(c, d)
+	pal.A = a
+	pal.B = b
+	fname, err := pal.ToGridPng()
+	assert.Nil(t, err)
+	t.Log(fname)
 }
