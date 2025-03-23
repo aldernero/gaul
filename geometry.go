@@ -872,6 +872,34 @@ func (t Triangle) Angles() (float64, float64, float64) {
 	return alpha, beta, gamma
 }
 
+// IsIsosceles determines whether the triangle has at least two sides of equal length, indicating an isosceles triangle.
+func (t Triangle) IsIsosceles() bool {
+	return Equalf(t.AB(), t.AC()) || Equalf(t.AB(), t.BC()) || Equalf(t.AC(), t.BC())
+}
+
+// IsEquilateral determines whether the triangle has all three sides of equal length, indicating an equilateral triangle.
+func (t Triangle) IsEquilateral() bool {
+	return Equalf(t.AB(), t.AC()) && Equalf(t.AC(), t.BC())
+}
+
+// IsRight determines whether the triangle has one right angle, indicating a right triangle.
+func (t Triangle) IsRight() bool {
+	alpha, beta, gamma := t.Angles()
+	return Equalf(math.Pi/2, alpha) || Equalf(math.Pi/2, beta) || Equalf(math.Pi/2, gamma)
+}
+
+// IsAcute determines whether the triangle has all angles less than 90 degrees, indicating an acute triangle.
+func (t Triangle) IsAcute() bool {
+	alpha, beta, gamma := t.Angles()
+	return alpha < math.Pi/2 && beta < math.Pi/2 && gamma < math.Pi/2
+}
+
+// IsObtuse determines whether the triangle has one angle greater than 90 degrees, indicating an obtuse triangle.
+func (t Triangle) IsObtuse() bool {
+	alpha, beta, gamma := t.Angles()
+	return alpha > math.Pi/2 || beta > math.Pi/2 || gamma > math.Pi/2
+}
+
 // IncircleRadius calculates the radius of the incircle
 func (t Triangle) IncircleRadius() float64 {
 	return 2 * t.Area() / t.Perimeter()
