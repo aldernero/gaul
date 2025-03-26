@@ -2,9 +2,10 @@ package gaul
 
 import (
 	"fmt"
-	"github.com/tdewolff/canvas"
 	"log"
 	"math"
+
+	"github.com/tdewolff/canvas"
 )
 
 // Primitive types
@@ -862,42 +863,110 @@ func (t Triangle) BC() float64 {
 }
 
 // Angles calculates the interior angles of the triangle
-func (t Triangle) Angles() (float64, float64, float64) {
-	a := t.BC()
+func (t Triangle) Angles() (alpha, beta, gamma float64) {
+	a := t.AB()
 	b := t.AC()
-	c := t.AB()
-	alpha := math.Acos((b*b + c*c - a*a) / (2 * b * c))
-	beta := math.Acos((a*a + c*c - b*b) / (2 * a * c))
-	gamma := math.Acos((a*a + b*b - c*c) / (2 * a * b))
-	return alpha, beta, gamma
+	c := t.BC()
+
+	// Use law of cosines with careful clamping
+	cosAlpha := (b*b + c*c - a*a) / (2 * b * c)
+	cosBeta := (a*a + c*c - b*b) / (2 * a * c)
+	cosGamma := (a*a + b*b - c*c) / (2 * a * b)
+
+	fmt.Printf("Angles: cosines %.10f, %.10f, %.10f\n", cosAlpha, cosBeta, cosGamma)
+
+	// Clamp cosine values to valid range
+	cosAlpha = math.Max(-1, math.Min(1, cosAlpha))
+	cosBeta = math.Max(-1, math.Min(1, cosBeta))
+	cosGamma = math.Max(-1, math.Min(1, cosGamma))
+
+	alpha = math.Acos(cosAlpha)
+	beta = math.Acos(cosBeta)
+	gamma = math.Acos(cosGamma)
+
+	fmt.Printf("Angles: %.10f, %.10f, %.10f\n", alpha, beta, gamma)
+
+	return
 }
 
 // IsIsosceles determines whether the triangle has at least two sides of equal length, indicating an isosceles triangle.
 func (t Triangle) IsIsosceles() bool {
-	return Equalf(t.AB(), t.AC()) || Equalf(t.AB(), t.BC()) || Equalf(t.AC(), t.BC())
+	a := t.AB()
+	b := t.AC()
+	c := t.BC()
+
+	fmt.Printf("IsIsosceles: sides a=%.10f, b=%.10f, c=%.10f\n", a, b, c)
+
+	// Compare ratios with a relative tolerance
+	ratio1 := math.Abs(a/b - 1)
+	ratio2 := math.Abs(b/c - 1)
+	ratio3 := math.Abs(a/c - 1)
+
+	fmt.Printf("IsIsosceles: ratios %.10f, %.10f, %.10f (tolerance %.10f)\n", ratio1, ratio2, ratio3, Smol)
+
+	return ratio1 <= Smol || ratio2 <= Smol || ratio3 <= Smol
 }
 
 // IsEquilateral determines whether the triangle has all three sides of equal length, indicating an equilateral triangle.
 func (t Triangle) IsEquilateral() bool {
-	return Equalf(t.AB(), t.AC()) && Equalf(t.AC(), t.BC())
+	a := t.AB()
+	b := t.AC()
+	c := t.BC()
+
+	fmt.Printf("IsEquilateral: sides a=%.10f, b=%.10f, c=%.10f\n", a, b, c)
+
+	// All ratios must be close to 1
+	ratio1 := math.Abs(a/b - 1)
+	ratio2 := math.Abs(b/c - 1)
+	ratio3 := math.Abs(a/c - 1)
+
+	fmt.Printf("IsEquilateral: ratios %.10f, %.10f, %.10f (tolerance %.10f)\n", ratio1, ratio2, ratio3, Smol)
+
+	return ratio1 <= Smol && ratio2 <= Smol && ratio3 <= Smol
 }
 
 // IsRight determines whether the triangle has one right angle, indicating a right triangle.
 func (t Triangle) IsRight() bool {
 	alpha, beta, gamma := t.Angles()
-	return Equalf(math.Pi/2, alpha) || Equalf(math.Pi/2, beta) || Equalf(math.Pi/2, gamma)
+	rightAngle := math.Pi / 2
+
+	// Check if any angle is approximately 90 degrees
+	return math.Abs(alpha-rightAngle) <= Smol ||
+		math.Abs(beta-rightAngle) <= Smol ||
+		math.Abs(gamma-rightAngle) <= Smol
 }
 
 // IsAcute determines whether the triangle has all angles less than 90 degrees, indicating an acute triangle.
 func (t Triangle) IsAcute() bool {
 	alpha, beta, gamma := t.Angles()
-	return alpha < math.Pi/2 && beta < math.Pi/2 && gamma < math.Pi/2
+	rightAngle := math.Pi / 2
+
+	// All angles must be less than 90 degrees
+	return alpha < rightAngle-Smol &&
+		beta < rightAngle-Smol &&
+		gamma < rightAngle-Smol
 }
 
 // IsObtuse determines whether the triangle has one angle greater than 90 degrees, indicating an obtuse triangle.
 func (t Triangle) IsObtuse() bool {
 	alpha, beta, gamma := t.Angles()
-	return alpha > math.Pi/2 || beta > math.Pi/2 || gamma > math.Pi/2
+	rightAngle := math.Pi / 2
+
+	// Any angle greater than 90 degrees
+	return alpha > rightAngle+Smol ||
+		beta > rightAngle+Smol ||
+		gamma > rightAngle+Smol
+}
+
+func (t Triangle) ContainsPoint(p Point) bool {
+	// Calculate barycentric coordinates
+	denominator := ((t.B.Y-t.C.Y)*(t.A.X-t.C.X) + (t.C.X-t.B.X)*(t.A.Y-t.C.Y))
+	alpha := ((t.B.Y-t.C.Y)*(p.X-t.C.X) + (t.C.X-t.B.X)*(p.Y-t.C.Y)) / denominator
+	beta := ((t.C.Y-t.A.Y)*(p.X-t.C.X) + (t.A.X-t.C.X)*(p.Y-t.C.Y)) / denominator
+	gamma := 1.0 - alpha - beta
+
+	// Point is inside if all coordinates are between 0 and 1
+	return alpha >= 0 && beta >= 0 && gamma >= 0
 }
 
 // IncircleRadius calculates the radius of the incircle

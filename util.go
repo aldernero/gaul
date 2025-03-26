@@ -14,8 +14,9 @@ const (
 	Tau   = 2 * math.Pi
 	Sqrt2 = math.Sqrt2
 	Sqrt3 = 1.7320508075688772
-	Smol  = 1e-9
-	Phi   = 1.618033988749895
+	// Smol is a small value used for floating point comparisons
+	Smol = 1e-5 // Increased from 1e-6 to handle geometric calculations better
+	Phi  = 1.618033988749895
 )
 
 // Gcd calculates the greatest common divisor

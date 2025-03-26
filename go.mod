@@ -25,7 +25,6 @@ require (
 	github.com/benoitkugler/textprocessing v0.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-fonts/latin-modern v0.3.3 // indirect
-	github.com/go-latex/latex v0.0.0-20250304174226-2790903426af // indirect
 	github.com/go-text/typesetting v0.3.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/kolesa-team/go-webp v1.0.4 // indirect
