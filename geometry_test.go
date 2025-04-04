@@ -1,6 +1,7 @@
 package gaul
 
 import (
+	"math"
 	"testing"
 )
 
@@ -358,5 +359,97 @@ func TestTriangle_IsObtuse(t *testing.T) {
 				t.Errorf("Triangle.IsObtuse() = %v, want %v", got, tt.expected)
 			}
 		})
+	}
+}
+
+func TestLineSDF(t *testing.T) {
+	// Test cases for Line.SDF
+	tests := []struct {
+		line     Line
+		point    Point
+		expected float64
+	}{
+		{
+			line:     Line{P: Point{X: 0, Y: 0}, Q: Point{X: 1, Y: 0}},
+			point:    Point{X: 0.5, Y: 1},
+			expected: 1.0,
+		},
+		{
+			line:     Line{P: Point{X: 0, Y: 0}, Q: Point{X: 1, Y: 0}},
+			point:    Point{X: 0.5, Y: 0},
+			expected: 0.0,
+		},
+		{
+			line:     Line{P: Point{X: 0, Y: 0}, Q: Point{X: 1, Y: 1}},
+			point:    Point{X: 0, Y: 1},
+			expected: math.Sqrt(2) / 2,
+		},
+		{
+			line:     Line{P: Point{X: 0, Y: 0}, Q: Point{X: 1, Y: 0}},
+			point:    Point{X: -1, Y: 0},
+			expected: 1.0,
+		},
+	}
+
+	for i, test := range tests {
+		result := test.line.SDF(test.point)
+		if !Equalf(result, test.expected) {
+			t.Errorf("Test %d: Expected %f, got %f", i, test.expected, result)
+		}
+	}
+}
+
+func TestTriangleSDF(t *testing.T) {
+	// Test cases for Triangle.SDF
+	tests := []struct {
+		triangle Triangle
+		point    Point
+		expected float64
+	}{
+		{
+			triangle: Triangle{
+				A: Point{X: 0, Y: 0},
+				B: Point{X: 1, Y: 0},
+				C: Point{X: 0, Y: 1},
+			},
+			point:    Point{X: 0.25, Y: 0.25},
+			expected: -0.25, // Inside triangle, negative distance
+		},
+		{
+			triangle: Triangle{
+				A: Point{X: 0, Y: 0},
+				B: Point{X: 1, Y: 0},
+				C: Point{X: 0, Y: 1},
+			},
+			point:    Point{X: 0.5, Y: 0.5},
+			expected: 0.0, // On edge of triangle
+		},
+		{
+			triangle: Triangle{
+				A: Point{X: 0, Y: 0},
+				B: Point{X: 1, Y: 0},
+				C: Point{X: 0, Y: 1},
+			},
+			point:    Point{X: 0, Y: 0},
+			expected: 0.0, // On vertex
+		},
+		{
+			triangle: Triangle{
+				A: Point{X: 0, Y: 0},
+				B: Point{X: 1, Y: 0},
+				C: Point{X: 0, Y: 1},
+			},
+			point:    Point{X: 0.5, Y: 0},
+			expected: 0.0, // On edge
+		},
+	}
+
+	for i, test := range tests {
+		result := test.triangle.SDF(test.point)
+		t.Logf("Test %d: Point %v, Inside: %v, Result: %f, Expected: %f",
+			i, test.point, test.triangle.ContainsPoint(test.point), result, test.expected)
+		if !Equalf(result, test.expected) {
+			t.Errorf("Test %d: Expected %f, got %f", i, test.expected, result)
+		}
 	}
 }

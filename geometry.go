@@ -350,6 +350,36 @@ func (l Line) Boundary() Rect {
 	return Rect{X: minX, Y: minY, W: maxX - minX, H: maxY - minY}
 }
 
+// SDF calculates the signed distance from a point to a line segment
+func (l Line) SDF(p Point) float64 {
+	// Vector from P to Q
+	dx := l.Q.X - l.P.X
+	dy := l.Q.Y - l.P.Y
+
+	// Vector from P to the point
+	px := p.X - l.P.X
+	py := p.Y - l.P.Y
+
+	// Project point onto line
+	dot := px*dx + py*dy
+	lenSq := dx*dx + dy*dy
+	t := dot / lenSq
+
+	// Clamp t to [0,1] to stay on segment
+	if t < 0 {
+		t = 0
+	} else if t > 1 {
+		t = 1
+	}
+
+	// Projected point
+	projX := l.P.X + t*dx
+	projY := l.P.Y + t*dy
+
+	// Distance to projected point
+	return Distance(p, Point{X: projX, Y: projY})
+}
+
 // Curve functions
 
 // Length Calculates the length of the line segments of a curve
@@ -966,7 +996,18 @@ func (t Triangle) ContainsPoint(p Point) bool {
 	gamma := 1.0 - alpha - beta
 
 	// Point is inside if all coordinates are between 0 and 1
-	return alpha >= 0 && beta >= 0 && gamma >= 0
+	return alpha >= -Smol && beta >= -Smol && gamma >= -Smol
+}
+
+// Helper function to determine sign of a value with tolerance
+func sign(x float64) float64 {
+	if math.Abs(x) < Smol {
+		return 0
+	}
+	if x < 0 {
+		return -1
+	}
+	return 1
 }
 
 // IncircleRadius calculates the radius of the incircle
@@ -1055,6 +1096,90 @@ func (t Triangle) NinePointCircle() Circle {
 	return Circle{
 		Center: t.NinePointCenter(),
 		Radius: t.NinePointRadius(),
+	}
+}
+
+func (t Triangle) SDF(p Point) float64 {
+	// Calculate vectors for each edge
+	ab := Line{P: t.A, Q: t.B}
+	bc := Line{P: t.B, Q: t.C}
+	ca := Line{P: t.C, Q: t.A}
+
+	// Calculate distances to each edge
+	d1 := ab.SDF(p)
+	d2 := bc.SDF(p)
+	d3 := ca.SDF(p)
+
+	// Calculate cross products to determine which side of each line the point is on
+	cp1 := (t.B.X-t.A.X)*(p.Y-t.A.Y) - (t.B.Y-t.A.Y)*(p.X-t.A.X)
+	cp2 := (t.C.X-t.B.X)*(p.Y-t.B.Y) - (t.C.Y-t.B.Y)*(p.X-t.B.X)
+	cp3 := (t.A.X-t.C.X)*(p.Y-t.C.Y) - (t.A.Y-t.C.Y)*(p.X-t.C.X)
+
+	// Point is inside if all cross products have the same sign
+	inside := (cp1 >= 0 && cp2 >= 0 && cp3 >= 0) || (cp1 <= 0 && cp2 <= 0 && cp3 <= 0)
+
+	// Find minimum distance to any edge
+	minDist := math.Min(math.Min(d1, d2), d3)
+
+	if inside {
+		return -minDist
+	}
+	return minDist
+}
+
+// ClosestPoint returns the closest point on the triangle to the given point
+func (t Triangle) ClosestPoint(p Point) Point {
+	// Check if point is inside triangle
+	if t.ContainsPoint(p) {
+		return p
+	}
+
+	// Find closest point on each edge
+	closest1 := Line{P: t.A, Q: t.B}.ClosestPoint(p)
+	closest2 := Line{P: t.B, Q: t.C}.ClosestPoint(p)
+	closest3 := Line{P: t.C, Q: t.A}.ClosestPoint(p)
+
+	// Calculate distances to each closest point
+	dist1 := Distance(p, closest1)
+	dist2 := Distance(p, closest2)
+	dist3 := Distance(p, closest3)
+
+	// Return the closest point
+	if dist1 <= dist2 && dist1 <= dist3 {
+		return closest1
+	}
+	if dist2 <= dist1 && dist2 <= dist3 {
+		return closest2
+	}
+	return closest3
+}
+
+// ClosestPoint returns the closest point on the line segment to the given point
+func (l Line) ClosestPoint(p Point) Point {
+	// Vector from P to Q
+	dx := l.Q.X - l.P.X
+	dy := l.Q.Y - l.P.Y
+
+	// Vector from P to the point
+	px := p.X - l.P.X
+	py := p.Y - l.P.Y
+
+	// Project point onto line
+	dot := px*dx + py*dy
+	lenSq := dx*dx + dy*dy
+	t := dot / lenSq
+
+	// Clamp t to [0,1] to stay on segment
+	if t < 0 {
+		t = 0
+	} else if t > 1 {
+		t = 1
+	}
+
+	// Return projected point
+	return Point{
+		X: l.P.X + t*dx,
+		Y: l.P.Y + t*dy,
 	}
 }
 
