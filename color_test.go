@@ -1,13 +1,14 @@
 package gaul
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestNewSimpleGradientFromNamed(t *testing.T) {
-	sg := NewSimpleGradientFromNamed("red", "blue")
+func TestNewSimpleGradient(t *testing.T) {
+	sg := NewSimpleGradient("red", "blue")
 	// red
 	c := sg.Color(0.0)
 	r, g, b, _ := c.RGBA()

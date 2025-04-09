@@ -1,14 +1,15 @@
 package gaul
 
 import (
-	"github.com/lucasb-eyer/go-colorful"
-	"github.com/tdewolff/canvas"
-	"github.com/tdewolff/canvas/renderers"
-	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
 	"regexp"
 	"strings"
+
+	"github.com/lucasb-eyer/go-colorful"
+	"github.com/tdewolff/canvas"
+	"github.com/tdewolff/canvas/renderers"
+	"golang.org/x/image/colornames"
 )
 
 type ColorType int
@@ -71,22 +72,22 @@ func NamedColor(name string) color.Color {
 }
 
 type SimpleGradient struct {
-	startColor color.Color
-	endColor   color.Color
+	StartColor color.Color
+	EndColor   color.Color
 }
 
-func NewSimpleGradientFromNamed(c1, c2 string) SimpleGradient {
+func NewSimpleGradient(c1, c2 string) SimpleGradient {
 	gradient := SimpleGradient{
-		startColor: NamedColor(c1),
-		endColor:   NamedColor(c2),
+		StartColor: StringToColor(c1),
+		EndColor:   StringToColor(c2),
 	}
 	return gradient
 }
 
 func (sg *SimpleGradient) Color(percentage float64) color.Color {
 	val := Clamp(0, 1, percentage)
-	c1, _ := colorful.MakeColor(sg.startColor)
-	c2, _ := colorful.MakeColor(sg.endColor)
+	c1, _ := colorful.MakeColor(sg.StartColor)
+	c2, _ := colorful.MakeColor(sg.EndColor)
 	return c1.BlendHcl(c2, val)
 }
 

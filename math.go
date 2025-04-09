@@ -9,7 +9,7 @@ type Vec2 struct {
 
 // Vec2FromPoint returns a vector from the origin to p
 func Vec2FromPoint(p Point) Vec2 {
-	return Vec2{X: p.X, Y: p.Y}
+	return p.ToVec2()
 }
 
 // Vec2FromPoints returns a vector from p to q

@@ -556,29 +556,29 @@ func (c *Curve) Draw(ctx *canvas.Context) {
 
 // Scale calculates a new curve for which each point is scaled by the give amount
 func (c *Curve) Scale(x, y float64) {
-	for _, p := range c.Points {
-		p.Scale(x, y)
+	for i := range c.Points {
+		c.Points[i] = c.Points[i].Scale(x, y)
 	}
 }
 
 // Rotate calculates a new curve for which each point is rotated by the given angle
 func (c *Curve) Rotate(a float64) {
-	for _, p := range c.Points {
-		p.Rotate(a)
+	for i := range c.Points {
+		c.Points[i] = c.Points[i].Rotate(a)
 	}
 }
 
 // Shear calculates a new curve for which each point is sheared by the given amount
 func (c *Curve) Shear(x, y float64) {
-	for _, p := range c.Points {
-		p.Shear(x, y)
+	for i := range c.Points {
+		c.Points[i] = c.Points[i].Shear(x, y)
 	}
 }
 
 // Translate calculates a new curve for which each point is translated by the given amount
 func (c *Curve) Translate(x, y float64) {
-	for _, p := range c.Points {
-		p.Translate(x, y)
+	for i := range c.Points {
+		c.Points[i] = c.Points[i].Translate(x, y)
 	}
 }
 
@@ -997,17 +997,6 @@ func (t Triangle) ContainsPoint(p Point) bool {
 
 	// Point is inside if all coordinates are between 0 and 1
 	return alpha >= -Smol && beta >= -Smol && gamma >= -Smol
-}
-
-// Helper function to determine sign of a value with tolerance
-func sign(x float64) float64 {
-	if math.Abs(x) < Smol {
-		return 0
-	}
-	if x < 0 {
-		return -1
-	}
-	return 1
 }
 
 // IncircleRadius calculates the radius of the incircle
