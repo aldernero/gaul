@@ -240,13 +240,13 @@ func (sp *SinePalette) ToPng() (string, error) {
 	dw := 0.8 * w / 1000
 	dh := 0.2 * h
 	aText := "A = " + sp.A.ToString(3)
-	aTextBox := canvas.NewTextBox(fontFace, aText, 0.8*w, 10, canvas.Left, canvas.Center, 0, 0)
+	aTextBox := canvas.NewTextBox(fontFace, aText, 0.8*w, 10, canvas.Left, canvas.Center, &canvas.TextOptions{})
 	bText := "B = " + sp.B.ToString(3)
-	bTextBox := canvas.NewTextBox(fontFace, bText, 0.8*w, 10, canvas.Right, canvas.Center, 0, 0)
+	bTextBox := canvas.NewTextBox(fontFace, bText, 0.8*w, 10, canvas.Right, canvas.Center, &canvas.TextOptions{})
 	cText := "C = " + sp.C.ToString(3)
-	cTextBox := canvas.NewTextBox(fontFace, cText, 0.8*w, 10, canvas.Left, canvas.Center, 0, 0)
+	cTextBox := canvas.NewTextBox(fontFace, cText, 0.8*w, 10, canvas.Left, canvas.Center, &canvas.TextOptions{})
 	dText := "D = " + sp.D.ToString(3)
-	dTextBox := canvas.NewTextBox(fontFace, dText, 0.8*w, 10, canvas.Right, canvas.Center, 0, 0)
+	dTextBox := canvas.NewTextBox(fontFace, dText, 0.8*w, 10, canvas.Right, canvas.Center, &canvas.TextOptions{})
 	ctx.SetFillColor(color.White)
 	ctx.SetStrokeColor(color.White)
 	ctx.DrawText(0.1*w, h+dh+8, aTextBox)
