@@ -1,19 +1,19 @@
 module github.com/aldernero/gaul
 
-go 1.24.2
+go 1.25.1
 
 require (
 	github.com/aldernero/interp v0.0.0-20231114035812-9ab0a3e37bf6
-	github.com/lucasb-eyer/go-colorful v1.2.0
+	github.com/lucasb-eyer/go-colorful v1.3.0
 	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/peterhellberg/gfx v0.0.0-20250602150231-2e41f5fad310
 	github.com/stretchr/testify v1.10.0
-	github.com/tdewolff/canvas v0.0.0-20250728095813-50d4cb1eee71
-	golang.org/x/image v0.30.0
+	github.com/tdewolff/canvas v0.0.0-20251001161249-3bdd22b825c9
+	golang.org/x/image v0.31.0
 )
 
 require (
-	codeberg.org/go-latex/latex v0.1.0 // indirect
+	codeberg.org/go-latex/latex v0.2.0 // indirect
 	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
 	github.com/BurntSushi/freetype-go v0.0.0-20160129220410-b763ddbfe298 // indirect
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
@@ -32,12 +32,12 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/srwiley/scanx v0.0.0-20190309010443-e94503791388 // indirect
-	github.com/tdewolff/font v0.0.0-20250724150151-83cb1696c2bd // indirect
-	github.com/tdewolff/minify/v2 v2.23.11 // indirect
-	github.com/tdewolff/parse/v2 v2.8.2-0.20250806174018-50048bb39781 // indirect
+	github.com/tdewolff/font v0.0.0-20250902141222-fb72ecc1bc0a // indirect
+	github.com/tdewolff/minify/v2 v2.24.3 // indirect
+	github.com/tdewolff/parse/v2 v2.8.4-0.20250902141113-be7b6b11bb1b // indirect
 	github.com/wcharczuk/go-chart/v2 v2.1.2 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 	gonum.org/v1/plot v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/knuth v0.5.5 // indirect
