@@ -5,7 +5,6 @@ go 1.25.1
 require (
 	github.com/aldernero/interp v0.0.0-20231114035812-9ab0a3e37bf6
 	github.com/lucasb-eyer/go-colorful v1.3.0
-	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/peterhellberg/gfx v0.0.0-20250602150231-2e41f5fad310
 	github.com/stretchr/testify v1.11.1
 	github.com/tdewolff/canvas v0.0.0-20251024143420-72e8297cc234

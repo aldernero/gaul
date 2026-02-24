@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ojrac/opensimplex-go"
 	"github.com/peterhellberg/gfx"
 )
 
@@ -19,7 +18,6 @@ const (
 type Rng struct {
 	seed        int64
 	Prng        LFSRLarge
-	Noise       opensimplex.Noise
 	Simplex     *gfx.SimplexNoise
 	octaves     int
 	persistence float64
@@ -39,7 +37,6 @@ func NewRng(i int64) Rng {
 	return Rng{
 		seed:        i,
 		Prng:        NewLFSRLargeWithSeed(uint64(i)),
-		Noise:       opensimplex.New(i),
 		Simplex:     gfx.NewSimplexNoise(i),
 		octaves:     defaultOctaves,
 		persistence: defaultPersistence,
@@ -57,7 +54,6 @@ func (r *Rng) SetSeed(seed int64) {
 	r.seed = seed
 	r.Prng = NewLFSRLargeWithSeed(uint64(seed))
 	r.Prng.Next()
-	r.Noise = opensimplex.NewNormalized(seed)
 	r.Simplex = gfx.NewSimplexNoise(seed)
 }
 
@@ -117,27 +113,12 @@ func (r *Rng) SetNoiseLacunarity(l float64) {
 	r.lacunarity = l
 }
 
-// SignedNoise1D generates 1D Noise values in the range of [-1, 1]
-func (r *Rng) SignedNoise1D(x float64) float64 {
-	return Map(0, 1, -1, 1, r.calcNoise1(x))
-}
-
-// SignedNoise2D generates 2D Noise values in the range of [-1, 1]
-func (r *Rng) SignedNoise2D(x float64, y float64) float64 {
-	return Map(0, 1, -1, 1, r.calcNoise2(x, y))
-}
-
-// SignedNoise3D generates 3D Noise values in the range of [-1, 1]
-func (r *Rng) SignedNoise3D(x float64, y float64, z float64) float64 {
-	return Map(0, 1, -1, -1, r.calcNoise3(x, y, z))
-}
-
-// Noise1D 1D Noise values in the range of [0, 1]
+// Noise1D 1D Noise values in the range of [-1, 1]
 func (r *Rng) Noise1D(x float64) float64 {
 	return r.calcNoise1(x)
 }
 
-// Noise2D generates 2D Noise values in the range of [0, 1]
+// Noise2D generates 2D Noise values in the range of [-1, 1]
 func (r *Rng) Noise2D(x float64, y float64) float64 {
 	return r.calcNoise2(x, y)
 }
@@ -145,6 +126,11 @@ func (r *Rng) Noise2D(x float64, y float64) float64 {
 // Noise3D generates 3D Noise values in the range of [0, 1]
 func (r *Rng) Noise3D(x float64, y float64, z float64) float64 {
 	return r.calcNoise3(x, y, z)
+}
+
+// Noise4D generates 4D Noise values in the range of [-1, 1]
+func (r *Rng) Noise4D(x float64, y float64, z float64, w float64) float64 {
+	return r.calcNoise4(x, y, z, w)
 }
 
 // UniformRandomPoints generates a list of points whose coordinates
