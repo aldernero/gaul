@@ -1547,6 +1547,33 @@ func voronoiCellPolygon(c *Cell) []Point {
 	if len(pts) >= 2 && voronoiPointEqual(pts[0], pts[len(pts)-1]) {
 		pts = pts[:len(pts)-1]
 	}
+	return voronoiEnsurePolygonCCW(pts)
+}
+
+// voronoiPolygonSignedArea2 is twice the signed area (shoelace sum) of a simple polygon.
+// Positive means counterclockwise when +Y is up (standard Cartesian).
+func voronoiPolygonSignedArea2(pts []Point) float64 {
+	var s float64
+	n := len(pts)
+	for i := 0; i < n; i++ {
+		j := (i + 1) % n
+		s += pts[i].X*pts[j].Y - pts[j].X*pts[i].Y
+	}
+	return s
+}
+
+// voronoiEnsurePolygonCCW reverses pts in place if the winding is clockwise, so that
+// the polygon is counterclockwise. Degenerate or near-zero-area polygons are unchanged.
+func voronoiEnsurePolygonCCW(pts []Point) []Point {
+	if len(pts) < 3 {
+		return pts
+	}
+	if voronoiPolygonSignedArea2(pts) >= -Smol {
+		return pts
+	}
+	for i, j := 0, len(pts)-1; i < j; i, j = i+1, j-1 {
+		pts[i], pts[j] = pts[j], pts[i]
+	}
 	return pts
 }
 
@@ -1556,9 +1583,10 @@ func voronoiPointEqual(a, b Point) bool {
 
 // VoronoiCells computes the Euclidean Voronoi diagram for sites clipped to bounds
 // using Fortune's sweep line algorithm (O(n log n)). Each returned Curve is closed and
-// corresponds to the Voronoi cell of sites[i] intersected with bounds. Duplicate input
-// coordinates yield identical curves. Sites must lie strictly inside or on bounds
-// (see [Rect.ContainsPoint]).
+// corresponds to the Voronoi cell of sites[i] intersected with bounds (a polygon, not
+// a triangle mesh). Vertices are ordered counterclockwise for positive signed area in
+// a Y-up coordinate system. Duplicate input coordinates yield identical curves. Sites
+// must lie strictly inside or on bounds (see [Rect.ContainsPoint]).
 func VoronoiCells(bounds Rect, sites []Point) ([]Curve, error) {
 	if bounds.W <= 0 || bounds.H <= 0 {
 		return nil, errors.New("gaul VoronoiCells: bounds width and height must be positive")
@@ -1591,7 +1619,9 @@ func VoronoiCells(bounds Rect, sites []Point) ([]Curve, error) {
 
 	// One site: the sweep leaves no finite bisectors; the clipped cell is the full bounds.
 	if len(unique) == 1 {
-		bySite[pointKey{unique[0].X, unique[0].Y}] = bounds.ToCurve()
+		full := bounds.ToCurve()
+		voronoiEnsurePolygonCCW(full.Points)
+		bySite[pointKey{unique[0].X, unique[0].Y}] = full
 	}
 
 	out := make([]Curve, len(sites))

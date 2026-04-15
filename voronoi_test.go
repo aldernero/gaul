@@ -52,6 +52,26 @@ func TestVoronoiCells_twoSites_areaSum(t *testing.T) {
 	assert.InDelta(t, b.W*b.H, sum, 1e-5)
 }
 
+// Voronoi cells are closed polygons (not triangles). Each should be wound CCW for +Y up.
+func TestVoronoiCells_cellPolygonsAreCCW(t *testing.T) {
+	b := unitSquare()
+	cases := [][]Point{
+		{{0.25, 0.5}, {0.75, 0.5}},
+		{{0.1, 0.1}, {0.9, 0.1}, {0.5, 0.9}},
+	}
+	for _, sites := range cases {
+		curves, err := VoronoiCells(b, sites)
+		require.NoError(t, err)
+		for _, c := range curves {
+			if len(c.Points) < 3 {
+				continue
+			}
+			assert.GreaterOrEqual(t, voronoiPolygonSignedArea2(c.Points), -Smol,
+				"cell polygon should be counterclockwise (non-negative signed shoelace sum)")
+		}
+	}
+}
+
 func TestVoronoiCells_verticesInsideBounds(t *testing.T) {
 	b := Rect{X: 2, Y: 3, W: 10, H: 7}
 	sites := []Point{
