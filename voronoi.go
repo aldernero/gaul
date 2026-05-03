@@ -3,7 +3,7 @@
 // Core implementation derived from the MIT-licensed package
 // https://github.com/pzsz/voronoi (Przemyslaw Szczepaniak), itself a port of
 // Raymond Hill's JavaScript implementation of Steven Fortune's algorithm.
-// Adapted for package gaul (Point/Curve API, VoronoiCells entrypoint).
+// Adapted for package gaul (Point/Curve API, VoronoiWithRect / VoronoiWithCurve entrypoints).
 
 package gaul
 
@@ -1581,22 +1581,138 @@ func voronoiPointEqual(a, b Point) bool {
 	return Equalf(a.X, b.X) && Equalf(a.Y, b.Y)
 }
 
-// VoronoiCells computes the Euclidean Voronoi diagram for sites clipped to bounds
+// voronoiPointInOrOnConvexCCW reports whether p lies inside or on the boundary of a
+// simple convex polygon with counterclockwise winding.
+func voronoiPointInOrOnConvexCCW(p Point, poly []Point) bool {
+	n := len(poly)
+	if n < 3 {
+		return false
+	}
+	for i := 0; i < n; i++ {
+		a := poly[i]
+		b := poly[(i+1)%n]
+		if orient2(a, b, p) < -Smol {
+			return false
+		}
+	}
+	return true
+}
+
+// voronoiIsConvexCCW returns true if poly has CCW winding and every vertex is a left
+// turn (no interior angle greater than 180°).
+func voronoiIsConvexCCW(poly []Point) bool {
+	n := len(poly)
+	if n < 3 {
+		return false
+	}
+	for i := 0; i < n; i++ {
+		if orient2(poly[i], poly[(i+1)%n], poly[(i+2)%n]) < -Smol {
+			return false
+		}
+	}
+	return voronoiPolygonSignedArea2(poly) > Smol
+}
+
+// voronoiIntersectSegmentLine returns the intersection of the closed segment s–e with
+// the infinite line through la–lb. ok is false when the segment is parallel to the line.
+func voronoiIntersectSegmentLine(s, e, la, lb Point) (Point, bool) {
+	den := orient2(la, lb, e) - orient2(la, lb, s)
+	if math.Abs(den) < 1e-14 {
+		return Point{}, false
+	}
+	t := -orient2(la, lb, s) / den
+	if t < -Smol || t > 1+Smol {
+		return Point{}, false
+	}
+	if t < 0 {
+		t = 0
+	}
+	if t > 1 {
+		t = 1
+	}
+	return Point{
+		X: s.X + t*(e.X-s.X),
+		Y: s.Y + t*(e.Y-s.Y),
+	}, true
+}
+
+func voronoiInsideClipHalfPlane(clipA, clipB, p Point) bool {
+	return orient2(clipA, clipB, p) >= -Smol
+}
+
+// voronoiSutherlandHodgman clips subject (closed polygon vertices, no repeated first
+// point) to the convex clip polygon clip (same convention). clip must be CCW.
+func voronoiSutherlandHodgman(subject []Point, clip []Point) []Point {
+	if len(subject) < 1 || len(clip) < 3 {
+		return nil
+	}
+	out := append([]Point(nil), subject...)
+	nClip := len(clip)
+	for i := 0; i < nClip; i++ {
+		ca := clip[i]
+		cb := clip[(i+1)%nClip]
+		if len(out) == 0 {
+			return nil
+		}
+		var next []Point
+		prev := out[len(out)-1]
+		prevIn := voronoiInsideClipHalfPlane(ca, cb, prev)
+		for j := 0; j < len(out); j++ {
+			curr := out[j]
+			currIn := voronoiInsideClipHalfPlane(ca, cb, curr)
+			if currIn {
+				if !prevIn {
+					if ip, ok := voronoiIntersectSegmentLine(prev, curr, ca, cb); ok {
+						next = append(next, ip)
+					}
+				}
+				next = append(next, curr)
+			} else if prevIn {
+				if ip, ok := voronoiIntersectSegmentLine(prev, curr, ca, cb); ok {
+					next = append(next, ip)
+				}
+			}
+			prev, prevIn = curr, currIn
+		}
+		out = voronoiDedupeConsecutivePolygonVerts(next)
+	}
+	return out
+}
+
+func voronoiDedupeConsecutivePolygonVerts(pts []Point) []Point {
+	if len(pts) == 0 {
+		return nil
+	}
+	out := make([]Point, 0, len(pts))
+	for _, p := range pts {
+		if len(out) > 0 && voronoiPointEqual(out[len(out)-1], p) {
+			continue
+		}
+		out = append(out, p)
+	}
+	n := len(out)
+	if n >= 2 && voronoiPointEqual(out[0], out[n-1]) {
+		out = out[:n-1]
+	}
+	return out
+}
+
+// VoronoiWithRect computes the Euclidean Voronoi diagram for sites clipped to bounds
 // using Fortune's sweep line algorithm (O(n log n)). Each returned Curve is closed and
 // corresponds to the Voronoi cell of sites[i] intersected with bounds (a polygon, not
 // a triangle mesh). Vertices are ordered counterclockwise for positive signed area in
 // a Y-up coordinate system. Duplicate input coordinates yield identical curves. Sites
 // must lie strictly inside or on bounds (see [Rect.ContainsPoint]).
-func VoronoiCells(bounds Rect, sites []Point) ([]Curve, error) {
+func VoronoiWithRect(bounds Rect, sites []Point) ([]Curve, error) {
 	if bounds.W <= 0 || bounds.H <= 0 {
-		return nil, errors.New("gaul VoronoiCells: bounds width and height must be positive")
+		return nil, errors.New("gaul VoronoiWithRect: bounds width and height must be positive")
 	}
 	if len(sites) == 0 {
 		return nil, nil
 	}
 	for i, p := range sites {
 		if !bounds.ContainsPoint(p) {
-			return nil, fmt.Errorf("gaul VoronoiCells: site %d is not inside bounds", i)
+			return nil, fmt.Errorf("gaul VoronoiWithRect: site %d is not inside bounds", i)
 		}
 	}
 	unique := uniqueSitesFortune(sites)
@@ -1620,6 +1736,77 @@ func VoronoiCells(bounds Rect, sites []Point) ([]Curve, error) {
 	// One site: the sweep leaves no finite bisectors; the clipped cell is the full bounds.
 	if len(unique) == 1 {
 		full := bounds.ToCurve()
+		voronoiEnsurePolygonCCW(full.Points)
+		bySite[pointKey{unique[0].X, unique[0].Y}] = full
+	}
+
+	out := make([]Curve, len(sites))
+	for i, p := range sites {
+		out[i] = bySite[pointKey{p.X, p.Y}]
+	}
+	return out, nil
+}
+
+// VoronoiWithCurve computes the Euclidean Voronoi diagram for sites clipped to a convex
+// polygonal boundary using Fortune's algorithm on the boundary's axis-aligned bounding
+// box, followed by Sutherland–Hodgman clipping of each cell to boundary. Each returned
+// [Curve] is closed and corresponds to the cell of sites[i] intersected with boundary.
+// Vertices are counterclockwise for positive signed area in a Y-up coordinate system.
+//
+// boundary must be [Curve.Closed] with at least three vertices, define a strictly
+// positive area, and form a simple convex polygon (for example a [Rect] from
+// [Rect.ToCurve], a triangle, or another Voronoi cell). Non-convex boundaries are not
+// supported because clipping is O(segments) per cell via convex half-plane cuts.
+// Duplicate site coordinates yield identical curves. Sites must lie inside or on the
+// boundary polygon.
+func VoronoiWithCurve(boundary Curve, sites []Point) ([]Curve, error) {
+	if !boundary.Closed {
+		return nil, errors.New("gaul VoronoiWithCurve: boundary curve must be closed")
+	}
+	if len(boundary.Points) < 3 {
+		return nil, errors.New("gaul VoronoiWithCurve: boundary must have at least three points")
+	}
+	br := boundary.Boundary()
+	if br.W <= 0 || br.H <= 0 {
+		return nil, errors.New("gaul VoronoiWithCurve: boundary has empty axis-aligned extent")
+	}
+	clipPoly := append([]Point(nil), boundary.Points...)
+	voronoiEnsurePolygonCCW(clipPoly)
+	if !voronoiIsConvexCCW(clipPoly) {
+		return nil, errors.New("gaul VoronoiWithCurve: boundary must be a simple convex polygon")
+	}
+	if len(sites) == 0 {
+		return nil, nil
+	}
+	for i, p := range sites {
+		if !voronoiPointInOrOnConvexCCW(p, clipPoly) {
+			return nil, fmt.Errorf("gaul VoronoiWithCurve: site %d is not inside boundary", i)
+		}
+	}
+	unique := uniqueSitesFortune(sites)
+	bbox := rectToBBox(br)
+	d := computeFortuneDiagram(unique, bbox, true)
+
+	bySite := make(map[pointKey]Curve, len(d.Cells))
+	for _, c := range d.Cells {
+		pts := voronoiCellPolygon(c)
+		clipped := voronoiSutherlandHodgman(pts, clipPoly)
+		var curve Curve
+		curve.Closed = true
+		if len(clipped) < 3 {
+			curve.Points = nil
+		} else {
+			curve.Points = append(curve.Points, clipped...)
+			voronoiEnsurePolygonCCW(curve.Points)
+		}
+		k := pointKey{c.Site.X, c.Site.Y}
+		bySite[k] = curve
+	}
+	if len(unique) == 1 {
+		full := Curve{
+			Closed: true,
+			Points: append([]Point(nil), clipPoly...),
+		}
 		voronoiEnsurePolygonCCW(full.Points)
 		bySite[pointKey{unique[0].X, unique[0].Y}] = full
 	}

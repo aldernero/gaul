@@ -14,27 +14,27 @@ func unitSquare() Rect {
 	return Rect{X: 0, Y: 0, W: 1, H: 1}
 }
 
-func TestVoronoiCells_empty(t *testing.T) {
-	curves, err := VoronoiCells(unitSquare(), nil)
+func TestVoronoiWithRect_empty(t *testing.T) {
+	curves, err := VoronoiWithRect(unitSquare(), nil)
 	require.NoError(t, err)
 	assert.Nil(t, curves)
 }
 
-func TestVoronoiCells_badBounds(t *testing.T) {
-	_, err := VoronoiCells(Rect{X: 0, Y: 0, W: -1, H: 1}, []Point{{0.5, 0.5}})
+func TestVoronoiWithRect_badBounds(t *testing.T) {
+	_, err := VoronoiWithRect(Rect{X: 0, Y: 0, W: -1, H: 1}, []Point{{0.5, 0.5}})
 	require.Error(t, err)
-	_, err = VoronoiCells(Rect{X: 0, Y: 0, W: 1, H: 0}, []Point{{0.5, 0.5}})
-	require.Error(t, err)
-}
-
-func TestVoronoiCells_siteOutside(t *testing.T) {
-	_, err := VoronoiCells(unitSquare(), []Point{{1.5, 0.5}})
+	_, err = VoronoiWithRect(Rect{X: 0, Y: 0, W: 1, H: 0}, []Point{{0.5, 0.5}})
 	require.Error(t, err)
 }
 
-func TestVoronoiCells_singleSite(t *testing.T) {
+func TestVoronoiWithRect_siteOutside(t *testing.T) {
+	_, err := VoronoiWithRect(unitSquare(), []Point{{1.5, 0.5}})
+	require.Error(t, err)
+}
+
+func TestVoronoiWithRect_singleSite(t *testing.T) {
 	b := unitSquare()
-	curves, err := VoronoiCells(b, []Point{{0.5, 0.5}})
+	curves, err := VoronoiWithRect(b, []Point{{0.5, 0.5}})
 	require.NoError(t, err)
 	require.Len(t, curves, 1)
 	assert.True(t, curves[0].Closed)
@@ -43,9 +43,9 @@ func TestVoronoiCells_singleSite(t *testing.T) {
 	assert.InDelta(t, b.W*b.H, tc.Area(), 1e-6)
 }
 
-func TestVoronoiCells_twoSites_areaSum(t *testing.T) {
+func TestVoronoiWithRect_twoSites_areaSum(t *testing.T) {
 	b := unitSquare()
-	curves, err := VoronoiCells(b, []Point{{0.25, 0.5}, {0.75, 0.5}})
+	curves, err := VoronoiWithRect(b, []Point{{0.25, 0.5}, {0.75, 0.5}})
 	require.NoError(t, err)
 	require.Len(t, curves, 2)
 	sum := curves[0].Area() + curves[1].Area()
@@ -53,14 +53,14 @@ func TestVoronoiCells_twoSites_areaSum(t *testing.T) {
 }
 
 // Voronoi cells are closed polygons (not triangles). Each should be wound CCW for +Y up.
-func TestVoronoiCells_cellPolygonsAreCCW(t *testing.T) {
+func TestVoronoiWithRect_cellPolygonsAreCCW(t *testing.T) {
 	b := unitSquare()
 	cases := [][]Point{
 		{{0.25, 0.5}, {0.75, 0.5}},
 		{{0.1, 0.1}, {0.9, 0.1}, {0.5, 0.9}},
 	}
 	for _, sites := range cases {
-		curves, err := VoronoiCells(b, sites)
+		curves, err := VoronoiWithRect(b, sites)
 		require.NoError(t, err)
 		for _, c := range curves {
 			if len(c.Points) < 3 {
@@ -72,12 +72,12 @@ func TestVoronoiCells_cellPolygonsAreCCW(t *testing.T) {
 	}
 }
 
-func TestVoronoiCells_verticesInsideBounds(t *testing.T) {
+func TestVoronoiWithRect_verticesInsideBounds(t *testing.T) {
 	b := Rect{X: 2, Y: 3, W: 10, H: 7}
 	sites := []Point{
 		{3, 4}, {8, 5}, {7, 8}, {4, 7},
 	}
-	curves, err := VoronoiCells(b, sites)
+	curves, err := VoronoiWithRect(b, sites)
 	require.NoError(t, err)
 	require.Len(t, curves, len(sites))
 	for _, c := range curves {
@@ -87,7 +87,7 @@ func TestVoronoiCells_verticesInsideBounds(t *testing.T) {
 	}
 }
 
-func TestVoronoiCells_grid_areaSum(t *testing.T) {
+func TestVoronoiWithRect_grid_areaSum(t *testing.T) {
 	b := unitSquare()
 	var sites []Point
 	for x := 0.25; x < 1; x += 0.5 {
@@ -95,7 +95,7 @@ func TestVoronoiCells_grid_areaSum(t *testing.T) {
 			sites = append(sites, Point{X: x, Y: y})
 		}
 	}
-	curves, err := VoronoiCells(b, sites)
+	curves, err := VoronoiWithRect(b, sites)
 	require.NoError(t, err)
 	var sum float64
 	for _, c := range curves {
@@ -104,10 +104,10 @@ func TestVoronoiCells_grid_areaSum(t *testing.T) {
 	assert.InDelta(t, 1.0, sum, 1e-4)
 }
 
-func TestVoronoiCells_duplicates(t *testing.T) {
+func TestVoronoiWithRect_duplicates(t *testing.T) {
 	b := unitSquare()
 	p := Point{X: 0.5, Y: 0.5}
-	curves, err := VoronoiCells(b, []Point{p, p})
+	curves, err := VoronoiWithRect(b, []Point{p, p})
 	require.NoError(t, err)
 	require.Len(t, curves, 2)
 	assert.InDelta(t, curves[0].Area(), curves[1].Area(), 1e-9)
@@ -117,11 +117,11 @@ func TestVoronoiCells_duplicates(t *testing.T) {
 	}
 }
 
-func TestVoronoiCells_twoSites_nearestSite(t *testing.T) {
+func TestVoronoiWithRect_twoSites_nearestSite(t *testing.T) {
 	b := unitSquare()
 	a := Point{X: 0.2, Y: 0.5}
 	c := Point{X: 0.8, Y: 0.5}
-	curves, err := VoronoiCells(b, []Point{a, c})
+	curves, err := VoronoiWithRect(b, []Point{a, c})
 	require.NoError(t, err)
 	probe := Point{X: 0.4, Y: 0.5}
 	assert.True(t, pointInPolygonOrOnEdge(probe, curves[0]))
@@ -129,6 +129,86 @@ func TestVoronoiCells_twoSites_nearestSite(t *testing.T) {
 	probe2 := Point{X: 0.6, Y: 0.5}
 	assert.False(t, pointInPolygonOrOnEdge(probe2, curves[0]))
 	assert.True(t, pointInPolygonOrOnEdge(probe2, curves[1]))
+}
+
+func triangleCCW(a, b, c Point) Curve {
+	return Curve{
+		Closed: true,
+		Points: []Point{a, b, c},
+	}
+}
+
+func TestVoronoiWithCurve_empty(t *testing.T) {
+	curves, err := VoronoiWithCurve(unitSquare().ToCurve(), nil)
+	require.NoError(t, err)
+	assert.Nil(t, curves)
+}
+
+func TestVoronoiWithCurve_notClosed(t *testing.T) {
+	c := Curve{Closed: false, Points: []Point{{0, 0}, {1, 0}, {0, 1}}}
+	_, err := VoronoiWithCurve(c, []Point{{0.1, 0.1}})
+	require.Error(t, err)
+}
+
+func TestVoronoiWithCurve_siteOutsideTriangle(t *testing.T) {
+	boundary := triangleCCW(Point{X: 0, Y: 0}, Point{X: 3, Y: 0}, Point{X: 1.5, Y: 2.6})
+	_, err := VoronoiWithCurve(boundary, []Point{{5, 5}})
+	require.Error(t, err)
+}
+
+func TestVoronoiWithCurve_nonConvexRejected(t *testing.T) {
+	boundary := Curve{
+		Closed: true,
+		Points: []Point{
+			{0, 0}, {4, 0}, {2, 2}, {4, 4}, {0, 4},
+		},
+	}
+	_, err := VoronoiWithCurve(boundary, []Point{{2, 3.5}})
+	require.Error(t, err)
+}
+
+func TestVoronoiWithCurve_agreesWithRectOnSquare(t *testing.T) {
+	b := unitSquare()
+	sites := []Point{{0.25, 0.5}, {0.75, 0.5}}
+	rectCurves, err := VoronoiWithRect(b, sites)
+	require.NoError(t, err)
+	curveBoundary := b.ToCurve()
+	curCurves, err := VoronoiWithCurve(curveBoundary, sites)
+	require.NoError(t, err)
+	require.Len(t, rectCurves, len(curCurves))
+	for i := range rectCurves {
+		assert.InDelta(t, rectCurves[i].Area(), curCurves[i].Area(), 1e-5, "cell %d area mismatch", i)
+	}
+}
+
+func TestVoronoiWithCurve_triangleTwoSitesAreaSum(t *testing.T) {
+	boundary := triangleCCW(Point{X: 0, Y: 0}, Point{X: 4, Y: 0}, Point{X: 2, Y: 3})
+	sites := []Point{{1, 0.3}, {3, 0.3}}
+	curves, err := VoronoiWithCurve(boundary, sites)
+	require.NoError(t, err)
+	require.Len(t, curves, 2)
+	want := boundary.Area()
+	sum := curves[0].Area() + curves[1].Area()
+	assert.InDelta(t, want, sum, 1e-4)
+}
+
+func TestVoronoiWithCurve_nestedInParentCell(t *testing.T) {
+	outer := unitSquare()
+	parentSites := []Point{{0.15, 0.5}, {0.85, 0.5}}
+	parentCells, err := VoronoiWithRect(outer, parentSites)
+	require.NoError(t, err)
+	boundary := parentCells[0]
+	require.True(t, boundary.Closed)
+	require.GreaterOrEqual(t, len(boundary.Points), 3)
+	innerSites := []Point{{0.06, 0.5}, {0.12, 0.5}}
+	curves, err := VoronoiWithCurve(boundary, innerSites)
+	require.NoError(t, err)
+	require.Len(t, curves, 2)
+	var sum float64
+	for _, c := range curves {
+		sum += c.Area()
+	}
+	assert.InDelta(t, boundary.Area(), sum, 1e-3)
 }
 
 // pointInPolygonOrOnEdge uses ray casting; boundary counts as inside for convex cells.
@@ -169,12 +249,12 @@ func distancePointToSegment(p, a, b Point) float64 {
 	return Distance(p, proj)
 }
 
-// BenchmarkVoronoiCells measures [VoronoiCells] with a fixed rectangle and a
+// BenchmarkVoronoiWithRect measures [VoronoiWithRect] with a fixed rectangle and a
 // deterministic pseudo-random site set per sub-benchmark size. Sites are
 // generated once; the benchmark loop only runs the diagram construction.
 //
-// Example: go test -bench=BenchmarkVoronoiCells -run=^$ -benchmem -count=5
-func BenchmarkVoronoiCells(b *testing.B) {
+// Example: go test -bench=BenchmarkVoronoiWithRect -run=^$ -benchmem -count=5
+func BenchmarkVoronoiWithRect(b *testing.B) {
 	bounds := Rect{X: 0, Y: 0, W: 1000, H: 1000}
 	sizes := []int{10, 50, 100, 500, 1000, 2500, 5000, 10000}
 	for _, n := range sizes {
@@ -191,7 +271,7 @@ func BenchmarkVoronoiCells(b *testing.B) {
 			var err error
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, err = VoronoiCells(bounds, sites)
+				_, err = VoronoiWithRect(bounds, sites)
 				if err != nil {
 					b.Fatal(err)
 				}
