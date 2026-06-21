@@ -153,9 +153,17 @@ func (g *Gradient) LinearPaletteStrings(num int) []string {
 	return paletteStrings
 }
 
+type ColorSpace int
+
+const (
+	ColorSpaceRGB ColorSpace = iota
+	ColorSpaceHSV
+)
+
 type SinePalette struct {
 	A, B, C, D Vec3
 	Alpha      float64
+	Space      ColorSpace
 }
 
 func NewSinePalette(c, d Vec3) SinePalette {
@@ -168,15 +176,53 @@ func NewSinePalette(c, d Vec3) SinePalette {
 	}
 }
 
+func hsvToRGB(h, s, v float64) (r, g, b float64) {
+	h = math.Mod(h, 1.0)
+	if h < 0 {
+		h += 1.0
+	}
+	if s == 0 {
+		return v, v, v
+	}
+	h6 := h * 6.0
+	i := int(h6)
+	f := h6 - float64(i)
+	p := v * (1 - s)
+	q := v * (1 - s*f)
+	u := v * (1 - s*(1-f))
+	switch i % 6 {
+	case 0:
+		return v, u, p
+	case 1:
+		return q, v, p
+	case 2:
+		return p, v, u
+	case 3:
+		return p, q, v
+	case 4:
+		return u, p, v
+	default:
+		return v, p, q
+	}
+}
+
 func (sp *SinePalette) ColorAt(t float64) color.Color {
-	r := sp.A.X + sp.B.X*math.Cos(2*math.Pi*(sp.C.X*t+sp.D.X))
-	g := sp.A.Y + sp.B.Y*math.Cos(2*math.Pi*(sp.C.Y*t+sp.D.Y))
-	b := sp.A.Z + sp.B.Z*math.Cos(2*math.Pi*(sp.C.Z*t+sp.D.Z))
+	x := sp.A.X + sp.B.X*math.Cos(2*math.Pi*(sp.C.X*t+sp.D.X))
+	y := sp.A.Y + sp.B.Y*math.Cos(2*math.Pi*(sp.C.Y*t+sp.D.Y))
+	z := sp.A.Z + sp.B.Z*math.Cos(2*math.Pi*(sp.C.Z*t+sp.D.Z))
 	var result color.RGBA64
-	result.R = uint16(Clamp(0, 1, r) * 65535)
-	result.G = uint16(Clamp(0, 1, g) * 65535)
-	result.B = uint16(Clamp(0, 1, b) * 65535)
 	result.A = uint16(Clamp(0, 1, sp.Alpha) * 65535)
+	switch sp.Space {
+	case ColorSpaceHSV:
+		r, g, b := hsvToRGB(x, Clamp(0, 1, y), Clamp(0, 1, z))
+		result.R = uint16(Clamp(0, 1, r) * 65535)
+		result.G = uint16(Clamp(0, 1, g) * 65535)
+		result.B = uint16(Clamp(0, 1, b) * 65535)
+	default:
+		result.R = uint16(Clamp(0, 1, x) * 65535)
+		result.G = uint16(Clamp(0, 1, y) * 65535)
+		result.B = uint16(Clamp(0, 1, z) * 65535)
+	}
 	return result
 }
 
@@ -220,6 +266,13 @@ func (sp *SinePalette) ToGridPng() (string, error) {
 		return fname, err
 	}
 	return fname, nil
+}
+
+func (sp *SinePalette) ColorAtStop(i, n int) color.Color {
+	if n <= 1 {
+		return sp.ColorAt(0)
+	}
+	return sp.ColorAt(float64(i) / float64(n-1))
 }
 
 func (sp *SinePalette) ToPng() (string, error) {
@@ -268,3 +321,45 @@ func (sp *SinePalette) ToPng() (string, error) {
 	}
 	return fname, nil
 }
+
+// ColorAt satisfies the Palette interface for SimpleGradient.
+func (sg *SimpleGradient) ColorAt(t float64) color.Color { return sg.Color(t) }
+
+// ColorAtStop satisfies the Palette interface for SimpleGradient.
+func (sg *SimpleGradient) ColorAtStop(i, n int) color.Color {
+	if n <= 1 {
+		return sg.ColorAt(0)
+	}
+	return sg.ColorAt(float64(i) / float64(n-1))
+}
+
+// ColorAt satisfies the Palette interface for Gradient.
+func (g *Gradient) ColorAt(t float64) color.Color { return g.Color(t) }
+
+// ColorAtStop satisfies the Palette interface for Gradient.
+func (g *Gradient) ColorAtStop(i, n int) color.Color {
+	if n <= 1 {
+		return g.ColorAt(0)
+	}
+	return g.ColorAt(float64(i) / float64(n-1))
+}
+
+// NewGradientFromColors creates a Gradient directly from color.Color values.
+// Used when reconstructing a gradient from the palette database.
+func NewGradientFromColors(colors []color.Color) Gradient {
+	return Gradient{stops: colors}
+}
+
+// Palette is the common interface for all gaul palette types.
+// ColorAt accepts a normalized position t ∈ [0,1].
+// ColorAtStop returns the color at discrete stop i of n (t = i/(n-1)).
+type Palette interface {
+	ColorAt(t float64) color.Color
+	ColorAtStop(i, n int) color.Color
+}
+
+var (
+	_ Palette = (*SimpleGradient)(nil)
+	_ Palette = (*Gradient)(nil)
+	_ Palette = (*SinePalette)(nil)
+)
