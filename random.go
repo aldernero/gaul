@@ -29,7 +29,6 @@ type Rng struct {
 	xoffset     float64
 	yoffset     float64
 	zoffset     float64
-	woffset     float64
 }
 
 // NewRng returns a PRNG with a system and Noise generator

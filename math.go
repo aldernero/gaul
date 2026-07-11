@@ -38,7 +38,7 @@ func (v Vec2) Dot(u Vec2) float64 {
 }
 
 func (v Vec2) Mag() float64 {
-	return math.Sqrt(math.Pow(v.X, 2) + math.Pow(v.Y, 2))
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
 
 func (v Vec2) Normalize() Vec2 {
@@ -55,7 +55,7 @@ func (v Vec2) UnitNormal() Vec2 {
 }
 
 func (v Vec2) ToPoint() Point {
-	return Point{X: v.X, Y: v.Y}
+	return Point(v)
 }
 
 func (v Vec2) ToString(prec int) string {
@@ -85,7 +85,7 @@ func (v Vec3) Dot(u Vec3) float64 {
 }
 
 func (v Vec3) Mag() float64 {
-	return math.Sqrt(math.Pow(v.X, 2) + math.Pow(v.Y, 2) + math.Pow(v.Z, 2))
+	return math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
 }
 
 func (v Vec3) Normalize() Vec3 {

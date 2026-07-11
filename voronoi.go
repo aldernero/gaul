@@ -201,10 +201,7 @@ func (t *rbTree) removeNode(node *rbNode) {
 	}
 	// the other cases
 	var sibling *rbNode
-	for {
-		if node == t.root {
-			break
-		}
+	for node != t.root {
 		if node == parent.left {
 			sibling = parent.right
 			if sibling.red {
@@ -313,13 +310,6 @@ func (t *rbTree) getFirst(node *rbNode) *rbNode {
 	return node
 }
 
-func (t *rbTree) getLast(node *rbNode) *rbNode {
-	for node.right != nil {
-		node = node.right
-	}
-	return node
-}
-
 type EdgeVertex struct {
 	Point
 	Edges []*Edge
@@ -338,18 +328,20 @@ type Edge struct {
 }
 
 func (e *Edge) GetOtherCell(cell *Cell) *Cell {
-	if cell == e.LeftCell {
+	switch cell {
+	case e.LeftCell:
 		return e.RightCell
-	} else if cell == e.RightCell {
+	case e.RightCell:
 		return e.LeftCell
 	}
 	return nil
 }
 
 func (e *Edge) GetOtherEdgeVertex(v Point) EdgeVertex {
-	if v == e.Va.Point {
+	switch v {
+	case e.Va.Point:
 		return e.Vb
-	} else if v == e.Vb.Point {
+	case e.Vb.Point:
 		return e.Va
 	}
 	return EdgeVertex{Point: noVoronoiVertex, Edges: nil}
@@ -1362,8 +1354,6 @@ func (s *Voronoi) closeCells(bbox BBox) {
 					} else {
 						vb = Point{xl, yt}
 					}
-				} else {
-					//			break
 				}
 
 				// Create new border edge. Slide it into iLeft+1 position
@@ -1372,7 +1362,7 @@ func (s *Voronoi) closeCells(bbox BBox) {
 				halfedges = cell.Halfedges
 				nHalfedges = len(halfedges)
 
-				copy(halfedges[iLeft+2:len(halfedges)], halfedges[iLeft+1:len(halfedges)-1])
+				copy(halfedges[iLeft+2:], halfedges[iLeft+1:len(halfedges)-1])
 				halfedges[iLeft+1] = newHalfedge(edge, cell, nil)
 
 			}

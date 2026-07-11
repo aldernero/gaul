@@ -158,17 +158,17 @@ func (p Point) Copy() Point {
 
 // ToVec2 translates the point to a Vec2 struct
 func (p Point) ToVec2() Vec2 {
-	return Vec2{X: p.X, Y: p.Y}
+	return Vec2(p)
 }
 
 // Distance between two points
 func Distance(p Point, q Point) float64 {
-	return math.Sqrt(math.Pow(q.X-p.X, 2) + math.Pow(q.Y-p.Y, 2))
+	return math.Sqrt((q.X - p.X) * (q.X - p.X) + (q.Y - p.Y) * (q.Y - p.Y))
 }
 
 // SquaredDistance is the square of the distance between two points
 func SquaredDistance(p Point, q Point) float64 {
-	return math.Pow(q.X-p.X, 2) + math.Pow(q.Y-p.Y, 2)
+	return (q.X - p.X) * (q.X - p.X) + (q.Y - p.Y) * (q.Y - p.Y)
 }
 
 // Line functions

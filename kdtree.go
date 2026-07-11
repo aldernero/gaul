@@ -45,7 +45,7 @@ func (k *KDTree) Search(p IndexPoint) *IndexPoint {
 	if k.point == nil {
 		return nil
 	}
-	if k.point.Point.IsEqual(p.Point) {
+	if k.point.IsEqual(p.Point) {
 		return k.point
 	}
 	if k.left != nil {
@@ -71,7 +71,7 @@ func (k *KDTree) UpdateIndex(p IndexPoint, index int) *IndexPoint {
 	if k.point == nil {
 		return nil
 	}
-	if k.point.Point.IsEqual(p.Point) {
+	if k.point.IsEqual(p.Point) {
 		k.point.Index = index
 		return k.point
 	}

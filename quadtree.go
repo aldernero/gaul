@@ -66,7 +66,7 @@ func (q *QuadTree) Search(p IndexPoint) *IndexPoint {
 		return nil
 	}
 	for _, point := range q.points {
-		if point.Point.IsEqual(p.Point) {
+		if point.IsEqual(p.Point) {
 			return &point
 		}
 	}
@@ -98,7 +98,7 @@ func (q *QuadTree) UpdateIndex(p IndexPoint, index int) *IndexPoint {
 		return nil
 	}
 	for i := range q.points {
-		if q.points[i].Point.IsEqual(p.Point) {
+		if q.points[i].IsEqual(p.Point) {
 			q.points[i].Index = index
 			return &q.points[i]
 		}
