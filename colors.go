@@ -93,6 +93,10 @@ func (sg *SimpleGradient) Color(percentage float64) color.Color {
 
 type Gradient struct {
 	stops []color.Color
+	// positions holds a normalized position in [0,1] for each stop. When nil,
+	// stops are treated as evenly spaced (the original behavior). When set, it
+	// must be the same length as stops and sorted in ascending order.
+	positions []float64
 }
 
 func (g *Gradient) AddStop(colorString string) {
@@ -117,6 +121,9 @@ func (g *Gradient) Color(percentage float64) color.Color {
 	if n == 1 {
 		return g.stops[0]
 	}
+	if g.positions != nil {
+		return g.colorAtPositions(val)
+	}
 	if val == 0 {
 		return g.stops[0]
 	}
@@ -126,6 +133,32 @@ func (g *Gradient) Color(percentage float64) color.Color {
 	i := Map(0, 1, 0, float64(n)-1, percentage)
 	lerp := i - math.Floor(i)
 	index := int(math.Floor(i))
+	c1, _ := colorful.MakeColor(g.stops[index])
+	c2, _ := colorful.MakeColor(g.stops[index+1])
+	return c1.BlendHcl(c2, lerp)
+}
+
+// colorAtPositions interpolates using the explicit stop positions. val is
+// assumed already clamped to [0,1].
+func (g *Gradient) colorAtPositions(val float64) color.Color {
+	n := len(g.stops)
+	// Clamp below the first / above the last stop.
+	if val <= g.positions[0] {
+		return g.stops[0]
+	}
+	if val >= g.positions[n-1] {
+		return g.stops[n-1]
+	}
+	// Find the bracketing pair [index, index+1] with positions surrounding val.
+	index := 0
+	for index < n-1 && g.positions[index+1] < val {
+		index++
+	}
+	p1, p2 := g.positions[index], g.positions[index+1]
+	var lerp float64
+	if span := p2 - p1; span > 0 {
+		lerp = (val - p1) / span
+	}
 	c1, _ := colorful.MakeColor(g.stops[index])
 	c2, _ := colorful.MakeColor(g.stops[index+1])
 	return c1.BlendHcl(c2, lerp)
@@ -348,6 +381,17 @@ func (g *Gradient) ColorAtStop(i, n int) color.Color {
 // Used when reconstructing a gradient from the palette database.
 func NewGradientFromColors(colors []color.Color) Gradient {
 	return Gradient{stops: colors}
+}
+
+// NewGradientFromColorStops creates a Gradient with explicit normalized stop
+// positions in [0,1]. positions must be the same length as colors and sorted in
+// ascending order. If positions is nil the stops are treated as evenly spaced,
+// matching NewGradientFromColors.
+func NewGradientFromColorStops(colors []color.Color, positions []float64) Gradient {
+	if positions != nil && len(positions) != len(colors) {
+		panic("gaul: positions length must match colors length")
+	}
+	return Gradient{stops: colors, positions: positions}
 }
 
 // Palette is the common interface for all gaul palette types.

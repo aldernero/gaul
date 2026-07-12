@@ -1,6 +1,7 @@
 package gaul
 
 import (
+	"image/color"
 	"math/rand"
 	"testing"
 
@@ -61,4 +62,38 @@ func TestSinePalette_ToGridPng(t *testing.T) {
 	fname, err := pal.ToGridPng()
 	assert.Nil(t, err)
 	t.Log(fname)
+}
+
+func TestGradientPositions(t *testing.T) {
+	red := StringToColor("red")
+	green := StringToColor("green")
+	blue := StringToColor("blue")
+	// Green is placed close to the start (0.2) rather than the midpoint.
+	g := NewGradientFromColorStops(
+		[]color.Color{red, green, blue},
+		[]float64{0, 0.2, 1},
+	)
+
+	// Exact stop hits.
+	r, gr, b, _ := g.Color(0).RGBA()
+	assert.Equal(t, uint8(255), uint8(r))
+	assert.Equal(t, uint8(0), uint8(gr))
+	assert.Equal(t, uint8(0), uint8(b))
+
+	r, gr, b, _ = g.Color(0.2).RGBA()
+	assert.Equal(t, uint8(0), uint8(r))
+	assert.Equal(t, uint8(128), uint8(gr)) // "green" is 0,128,0
+	assert.Equal(t, uint8(0), uint8(b))
+
+	r, gr, b, _ = g.Color(1).RGBA()
+	assert.Equal(t, uint8(0), uint8(r))
+	assert.Equal(t, uint8(0), uint8(gr))
+	assert.Equal(t, uint8(255), uint8(b))
+
+	// A nil positions slice must reproduce the even-spacing behavior.
+	even := NewGradientFromColorStops([]color.Color{red, green, blue}, nil)
+	plain := NewGradientFromColors([]color.Color{red, green, blue})
+	c1 := even.Color(0.5)
+	c2 := plain.Color(0.5)
+	assert.Equal(t, c1, c2)
 }
