@@ -27,6 +27,14 @@ ras.SavePNG("out.png")
 svg.Save("out.svg")
 ```
 
+Two more backends/features round this out: `render.NewRecorder(w, h)` records a
+frame's draw operations and replays them later into any renderer
+(`rec.Replay(dst)`), so a frame can be exported exactly as drawn without
+re-running the drawing code. And `Raster.SetScale(k)` renders logical
+coordinates into a k-times larger image — geometry, stroke widths, dashes, and
+text all scale uniformly — for supersampled exports or fast low-resolution
+previews.
+
 Two drawing styles are supported and can be mixed freely.
 
 Processing-style immediate mode, using the context's transform stack:
