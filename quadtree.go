@@ -1,7 +1,7 @@
 package gaul
 
 import (
-	"github.com/tdewolff/canvas"
+	"github.com/aldernero/gaul/render"
 )
 
 const defaultCapacity = 4
@@ -246,7 +246,7 @@ func (q *QuadTree) Size() int {
 	return count
 }
 
-func (q *QuadTree) Draw(ctx *canvas.Context) {
+func (q *QuadTree) Draw(ctx *render.Context) {
 	q.boundary.Draw(ctx)
 
 	if q.ne == nil {
@@ -259,7 +259,7 @@ func (q *QuadTree) Draw(ctx *canvas.Context) {
 	q.nw.Draw(ctx)
 }
 
-func (q *QuadTree) DrawWithPoints(s float64, ctx *canvas.Context) {
+func (q *QuadTree) DrawWithPoints(s float64, ctx *render.Context) {
 	for _, p := range q.points {
 		p.Draw(s, ctx)
 	}

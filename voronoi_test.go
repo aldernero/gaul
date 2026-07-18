@@ -5,12 +5,13 @@ import (
 	"image/color"
 	"math"
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tdewolff/canvas"
-	"github.com/tdewolff/canvas/renderers/rasterizer"
+
+	"github.com/aldernero/gaul/render"
 )
 
 func unitSquare() Rect {
@@ -252,27 +253,10 @@ func distancePointToSegment(p, a, b Point) float64 {
 	return Distance(p, proj)
 }
 
-// voronoiCanvasMM is the canvas size in millimeters for headless draw tests.
-const voronoiCanvasMM = 100.0
+// voronoiRasterSize is the raster size in pixels for headless draw tests.
+const voronoiRasterSize = 200
 
-// curveToCanvasPath builds a canvas path from a gaul curve (line segments only).
-func curveToCanvasPath(c Curve) *canvas.Path {
-	p := &canvas.Path{}
-	n := len(c.Points)
-	if n == 0 {
-		return p
-	}
-	p.MoveTo(c.Points[0].X, c.Points[0].Y)
-	for i := 1; i < n; i++ {
-		p.LineTo(c.Points[i].X, c.Points[i].Y)
-	}
-	if c.Closed {
-		p.Close()
-	}
-	return p
-}
-
-// voronoiDrawStyle configures how Voronoi cells are drawn on a canvas context.
+// voronoiDrawStyle configures how Voronoi cells are drawn on a render context.
 type voronoiDrawStyle int
 
 const (
@@ -281,60 +265,50 @@ const (
 	voronoiDrawFillAndStroke
 )
 
-// renderVoronoiOnCanvas builds a Voronoi diagram, draws every cell on an in-memory
-// canvas, and rasterizes it. No window is opened: canvas.New only allocates layers;
-// intersection code runs during rasterizer.RenderPath when strokes are enabled, or
-// when Path.Settle is called explicitly (see settleEach).
-func renderVoronoiOnCanvas(t *testing.T, b Rect, sites []Point, style voronoiDrawStyle, settleEach bool) {
+// renderVoronoi builds a Voronoi diagram, draws every cell through a render
+// context onto an in-memory raster, and checks the result is non-trivial.
+// This replaces the old tdewolff/canvas tests that stressed its Settle /
+// path-boolean engine, which has no analog in the in-repo renderer.
+func renderVoronoi(t *testing.T, b Rect, sites []Point, style voronoiDrawStyle) {
 	t.Helper()
 	curves, err := VoronoiWithRect(b, sites)
 	require.NoError(t, err)
 
-	c := canvas.New(voronoiCanvasMM, voronoiCanvasMM)
-	ctx := canvas.NewContext(c)
+	ras := render.NewRaster(voronoiRasterSize, voronoiRasterSize)
+	ctx := render.NewContext(ras)
+	// Map the diagram bounds onto the raster.
+	ctx.Scale(voronoiRasterSize/b.W, voronoiRasterSize/b.H)
+	ctx.Translate(-b.X, -b.Y)
 	ctx.SetFillColor(color.RGBA{200, 200, 220, 255})
+	ctx.SetStrokeColor(nil)
 	switch style {
 	case voronoiDrawStroke:
-		ctx.SetFillColor(canvas.Transparent)
+		ctx.SetFillColor(nil)
 		ctx.SetStrokeColor(color.RGBA{20, 20, 40, 255})
-		ctx.SetStrokeWidth(0.2)
+		ctx.SetStrokeWidth(1)
 	case voronoiDrawFillAndStroke:
 		ctx.SetStrokeColor(color.RGBA{20, 20, 40, 255})
-		ctx.SetStrokeWidth(0.15)
+		ctx.SetStrokeWidth(1)
 	}
 
-	for _, cell := range curves {
-		if settleEach {
-			settled := curveToCanvasPath(cell).Settle(canvas.NonZero)
-			ctx.DrawPath(0, 0, settled)
-			ctx.Fill()
-			continue
-		}
-		switch style {
-		case voronoiDrawStroke:
-			n := len(cell.Points)
-			if n < 2 {
-				continue
-			}
-			ctx.MoveTo(cell.Points[0].X, cell.Points[0].Y)
-			for i := 1; i < n; i++ {
-				ctx.LineTo(cell.Points[i].X, cell.Points[i].Y)
-			}
-			if cell.Closed {
-				ctx.Close()
-			}
-			ctx.Stroke()
-		default:
-			cell.Draw(ctx)
-		}
+	for i := range curves {
+		curves[i].Draw(ctx)
 	}
 
-	rasterizeCanvas(c)
+	painted := 0
+	img := ras.Image()
+	for y := range voronoiRasterSize {
+		for x := range voronoiRasterSize {
+			if img.RGBAAt(x, y).A > 0 {
+				painted++
+			}
+		}
+	}
+	assert.Greater(t, painted, voronoiRasterSize, "expected non-trivial pixel coverage")
 }
 
-// TestVoronoiCanvasRender_fill exercises fill-only rendering (default Curve.Draw).
-// Bentley–Ottmann settling is not used for fill-only paths in the rasterizer.
-func TestVoronoiCanvasRender_fill(t *testing.T) {
+// TestVoronoiRender_fill exercises fill-only rendering (default Curve.Draw).
+func TestVoronoiRender_fill(t *testing.T) {
 	cases := []struct {
 		name  string
 		sites []Point
@@ -347,24 +321,23 @@ func TestVoronoiCanvasRender_fill(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			renderVoronoiOnCanvas(t, unitSquare(), tc.sites, voronoiDrawFill, false)
+			renderVoronoi(t, unitSquare(), tc.sites, voronoiDrawFill)
 		})
 	}
 }
 
-func TestVoronoiCanvasRender_fill_denseGrid(t *testing.T) {
+func TestVoronoiRender_fill_denseGrid(t *testing.T) {
 	var sites []Point
 	for x := 0.05; x < 1.0; x += 0.1 {
 		for y := 0.05; y < 1.0; y += 0.1 {
 			sites = append(sites, Point{x, y})
 		}
 	}
-	renderVoronoiOnCanvas(t, unitSquare(), sites, voronoiDrawFill, false)
+	renderVoronoi(t, unitSquare(), sites, voronoiDrawFill)
 }
 
-// TestVoronoiCanvasRender_stroke draws cell outlines with stroke enabled. Path.Stroke
-// calls Settle unless canvas.FastStroke is true — this is the main intersection stress path.
-func TestVoronoiCanvasRender_stroke(t *testing.T) {
+// TestVoronoiRender_stroke draws cell outlines with stroke enabled.
+func TestVoronoiRender_stroke(t *testing.T) {
 	cases := []struct {
 		name  string
 		sites []Point
@@ -376,26 +349,26 @@ func TestVoronoiCanvasRender_stroke(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			renderVoronoiOnCanvas(t, unitSquare(), tc.sites, voronoiDrawStroke, false)
+			renderVoronoi(t, unitSquare(), tc.sites, voronoiDrawStroke)
 		})
 	}
 }
 
-func TestVoronoiCanvasRender_stroke_denseGrid(t *testing.T) {
+func TestVoronoiRender_stroke_denseGrid(t *testing.T) {
 	var sites []Point
 	for x := 0.05; x < 1.0; x += 0.1 {
 		for y := 0.05; y < 1.0; y += 0.1 {
 			sites = append(sites, Point{x, y})
 		}
 	}
-	renderVoronoiOnCanvas(t, unitSquare(), sites, voronoiDrawStroke, false)
+	renderVoronoi(t, unitSquare(), sites, voronoiDrawStroke)
 }
 
-func TestVoronoiCanvasRender_fillAndStroke(t *testing.T) {
-	renderVoronoiOnCanvas(t, unitSquare(), []Point{{0.2, 0.3}, {0.8, 0.3}, {0.5, 0.85}}, voronoiDrawFillAndStroke, false)
+func TestVoronoiRender_fillAndStroke(t *testing.T) {
+	renderVoronoi(t, unitSquare(), []Point{{0.2, 0.3}, {0.8, 0.3}, {0.5, 0.85}}, voronoiDrawFillAndStroke)
 }
 
-func TestVoronoiCanvasRender_stroke_randomSites(t *testing.T) {
+func TestVoronoiRender_stroke_randomSites(t *testing.T) {
 	b := Rect{X: 0, Y: 0, W: 10, H: 10}
 	rng := rand.New(rand.NewSource(7))
 	sites := make([]Point, 80)
@@ -405,205 +378,30 @@ func TestVoronoiCanvasRender_stroke_randomSites(t *testing.T) {
 			Y: b.Y + rng.Float64()*b.H,
 		}
 	}
-	renderVoronoiOnCanvas(t, b, sites, voronoiDrawStroke, false)
+	renderVoronoi(t, b, sites, voronoiDrawStroke)
 }
 
-// TestVoronoiCanvasSettle calls Path.Settle on each cell directly (always runs Bentley–Ottmann).
-func TestVoronoiCanvasSettle(t *testing.T) {
-	cases := []struct {
-		name  string
-		sites []Point
-	}{
-		{"two_sites", []Point{{0.25, 0.5}, {0.75, 0.5}}},
-		{"duplicate_sites", []Point{{0.5, 0.5}, {0.5, 0.5}}},
-		{"collinear", []Point{{0.1, 0.5}, {0.5, 0.5}, {0.9, 0.5}}},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			renderVoronoiOnCanvas(t, unitSquare(), tc.sites, voronoiDrawFill, true)
-		})
-	}
-}
-
-func TestVoronoiCanvasSettle_denseGrid(t *testing.T) {
-	var sites []Point
-	for x := 0.1; x < 1.0; x += 0.2 {
-		for y := 0.1; y < 1.0; y += 0.2 {
-			sites = append(sites, Point{x, y})
-		}
-	}
-	renderVoronoiOnCanvas(t, unitSquare(), sites, voronoiDrawFill, true)
-}
-
-// voronoiMergedPath joins all cell outlines into one canvas path (many subpaths, shared edges
-// drawn twice). This maximizes overlap for Bentley–Ottmann compared to settling each cell alone.
-func voronoiMergedPath(t *testing.T, b Rect, sites []Point) *canvas.Path {
-	t.Helper()
-	curves, err := VoronoiWithRect(b, sites)
+// TestVoronoiRender_svg draws a diagram to the SVG backend and checks the
+// document is produced (path elements with real stroke attributes).
+func TestVoronoiRender_svg(t *testing.T) {
+	curves, err := VoronoiWithRect(unitSquare(), []Point{{0.25, 0.5}, {0.75, 0.5}})
 	require.NoError(t, err)
-	paths := make(canvas.Paths, len(curves))
-	for i, cell := range curves {
-		paths[i] = curveToCanvasPath(cell)
-	}
-	return paths.Merge()
-}
 
-// rasterizeCanvas renders an in-memory canvas headlessly (no window).
-func rasterizeCanvas(c *canvas.Canvas) {
-	ras := rasterizer.New(c.W, c.H, canvas.DPMM(2), canvas.DefaultColorSpace)
-	c.RenderTo(ras)
-	ras.Close()
-}
-
-// renderVoronoiMergedSettle merges every cell into one path and runs a single Settle pass.
-func renderVoronoiMergedSettle(t *testing.T, b Rect, sites []Point) {
-	t.Helper()
-	merged := voronoiMergedPath(t, b, sites)
-	settled := merged.Settle(canvas.NonZero)
-
-	c := canvas.New(voronoiCanvasMM, voronoiCanvasMM)
-	ctx := canvas.NewContext(c)
-	ctx.SetFillColor(color.RGBA{180, 200, 220, 255})
-	ctx.DrawPath(0, 0, settled)
-	rasterizeCanvas(c)
-}
-
-// renderVoronoiMergedStroke strokes the merged path in one DrawPath call so shared cell edges
-// are processed together through Path.Stroke → Settle (when FastStroke is false).
-func renderVoronoiMergedStroke(t *testing.T, b Rect, sites []Point) {
-	t.Helper()
-	merged := voronoiMergedPath(t, b, sites)
-
-	c := canvas.New(voronoiCanvasMM, voronoiCanvasMM)
-	ctx := canvas.NewContext(c)
-	ctx.SetFillColor(canvas.Transparent)
+	svg := render.NewSVG(voronoiRasterSize, voronoiRasterSize)
+	ctx := render.NewContext(svg)
+	ctx.Scale(voronoiRasterSize, voronoiRasterSize)
+	ctx.SetFillColor(nil)
 	ctx.SetStrokeColor(color.RGBA{20, 20, 40, 255})
-	ctx.SetStrokeWidth(0.2)
-	ctx.DrawPath(0, 0, merged)
-	rasterizeCanvas(c)
-}
-
-// TestVoronoiCanvasMergedSettle runs one Settle over all cells merged (heavy overlap).
-func TestVoronoiCanvasMergedSettle(t *testing.T) {
-	cases := []struct {
-		name  string
-		sites []Point
-	}{
-		{"two_sites", []Point{{0.25, 0.5}, {0.75, 0.5}}},
-		{"duplicate_sites", []Point{{0.5, 0.5}, {0.5, 0.5}}},
-		{"collinear", []Point{{0.1, 0.5}, {0.5, 0.5}, {0.9, 0.5}}},
-		{"triangle", []Point{{0.1, 0.1}, {0.9, 0.1}, {0.5, 0.9}}},
+	ctx.SetStrokeWidth(1)
+	for i := range curves {
+		curves[i].Draw(ctx)
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			renderVoronoiMergedSettle(t, unitSquare(), tc.sites)
-		})
-	}
-}
-
-func TestVoronoiCanvasMergedSettle_denseGrid(t *testing.T) {
-	var sites []Point
-	for x := 0.05; x < 1.0; x += 0.1 {
-		for y := 0.05; y < 1.0; y += 0.1 {
-			sites = append(sites, Point{x, y})
-		}
-	}
-	renderVoronoiMergedSettle(t, unitSquare(), sites)
-}
-
-// TestVoronoiCanvasMergedStroke strokes the merged path (shared edges in one stroke op).
-func TestVoronoiCanvasMergedStroke(t *testing.T) {
-	renderVoronoiMergedStroke(t, unitSquare(), []Point{{0.25, 0.5}, {0.75, 0.5}})
-	renderVoronoiMergedStroke(t, unitSquare(), []Point{{0.1, 0.1}, {0.9, 0.1}, {0.5, 0.9}})
-}
-
-// TestVoronoiCanvasMergedStroke_denseGrid strokes all cells as one path (shared edges in one
-// Stroke → Settle pass). Regression for canvas bentleyOttmann polygon walking at tight junctions.
-//
-// canvas.FastStroke is forced on here to skip Settle and avoid the panic (upstream canvas issue,
-// fix pending); remove this once the fix lands and Settle no longer panics on this fixture.
-func TestVoronoiCanvasMergedStroke_denseGrid(t *testing.T) {
-	orig := canvas.FastStroke
-	canvas.FastStroke = true
-	t.Cleanup(func() { canvas.FastStroke = orig })
-
-	var sites []Point
-	for x := 0.05; x < 1.0; x += 0.1 {
-		for y := 0.05; y < 1.0; y += 0.1 {
-			sites = append(sites, Point{x, y})
-		}
-	}
-	renderVoronoiMergedStroke(t, unitSquare(), sites)
-}
-
-// TestVoronoiCanvasMergedStroke_denseGrid_fastStroke verifies canvas.FastStroke bypasses the
-// Settle panic in TestVoronoiCanvasMergedStroke_denseGrid for the same site layout.
-func TestVoronoiCanvasMergedStroke_denseGrid_fastStroke(t *testing.T) {
-	var sites []Point
-	for x := 0.05; x < 1.0; x += 0.1 {
-		for y := 0.05; y < 1.0; y += 0.1 {
-			sites = append(sites, Point{x, y})
-		}
-	}
-	orig := canvas.FastStroke
-	canvas.FastStroke = true
-	t.Cleanup(func() { canvas.FastStroke = orig })
-	renderVoronoiMergedStroke(t, unitSquare(), sites)
-}
-
-// TestVoronoiCanvasStroke_fastStroke compares stroke rendering with canvas.FastStroke on and off.
-// When true, Path.Stroke skips Settle (canvas bypass for intersection).
-func TestVoronoiCanvasStroke_fastStroke(t *testing.T) {
-	sites := []Point{{0.25, 0.5}, {0.75, 0.5}, {0.5, 0.85}}
-	for _, fast := range []bool{false, true} {
-		name := "settle_on_stroke"
-		if fast {
-			name = "fast_stroke_no_settle"
-		}
-		t.Run(name, func(t *testing.T) {
-			orig := canvas.FastStroke
-			canvas.FastStroke = fast
-			t.Cleanup(func() { canvas.FastStroke = orig })
-			renderVoronoiOnCanvas(t, unitSquare(), sites, voronoiDrawStroke, false)
-		})
-	}
-}
-
-func TestVoronoiCanvasStroke_fastStroke_denseGrid(t *testing.T) {
-	var sites []Point
-	for x := 0.05; x < 1.0; x += 0.1 {
-		for y := 0.05; y < 1.0; y += 0.1 {
-			sites = append(sites, Point{x, y})
-		}
-	}
-	for _, fast := range []bool{false, true} {
-		name := "settle_on_stroke"
-		if fast {
-			name = "fast_stroke_no_settle"
-		}
-		t.Run(name, func(t *testing.T) {
-			orig := canvas.FastStroke
-			canvas.FastStroke = fast
-			t.Cleanup(func() { canvas.FastStroke = orig })
-			renderVoronoiOnCanvas(t, unitSquare(), sites, voronoiDrawStroke, false)
-		})
-	}
-}
-
-func TestVoronoiCanvasMergedStroke_fastStroke(t *testing.T) {
-	sites := []Point{{0.1, 0.1}, {0.9, 0.1}, {0.5, 0.9}}
-	for _, fast := range []bool{false, true} {
-		name := "settle_on_stroke"
-		if fast {
-			name = "fast_stroke_no_settle"
-		}
-		t.Run(name, func(t *testing.T) {
-			orig := canvas.FastStroke
-			canvas.FastStroke = fast
-			t.Cleanup(func() { canvas.FastStroke = orig })
-			renderVoronoiMergedStroke(t, unitSquare(), sites)
-		})
-	}
+	var buf strings.Builder
+	_, err = svg.WriteTo(&buf)
+	require.NoError(t, err)
+	doc := buf.String()
+	assert.Contains(t, doc, "<path")
+	assert.Contains(t, doc, "stroke-width")
 }
 
 // BenchmarkVoronoiWithRect measures [VoronoiWithRect] with a fixed rectangle and a

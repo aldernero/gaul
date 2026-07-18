@@ -1,9 +1,11 @@
 package gaul
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math"
+	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestAffine2D_Mult tests basic matrix multiplication
@@ -232,4 +234,29 @@ func TestAffine2D_RotateCurveAboutPoint(t *testing.T) {
 	assert.True(Equalf(0.5+math.Sqrt2/2, result.Points[2].Y))
 	assert.True(Equalf(0.5-math.Sqrt2/2, result.Points[3].X))
 	assert.True(Equalf(0.5, result.Points[3].Y))
+}
+
+// TestAffine2D_ToMatrix verifies that ToMatrix agrees with the Affine2D
+// transform itself, pinning the field mapping between the two types.
+func TestAffine2D_ToMatrix(t *testing.T) {
+	assert := assert.New(t)
+	transforms := []*Affine2D{
+		NewAffine2D(),
+		NewAffine2DWithScale(2.5, -1.5),
+		NewAffine2DWithRotation(math.Pi / 3),
+		NewAffine2DWithTranslation(12, -7),
+		NewAffine2DWithShear(0.3, -0.6),
+		Mult(NewAffine2DWithRotation(0.7), NewAffine2DWithTranslation(3, 4)),
+	}
+	rng := rand.New(rand.NewSource(42))
+	for _, a := range transforms {
+		m := a.ToMatrix()
+		for range 100 {
+			p := Point{X: rng.Float64()*200 - 100, Y: rng.Float64()*200 - 100}
+			want := a.TransformPoint(p)
+			gotX, gotY := m.Apply(p.X, p.Y)
+			assert.InDelta(want.X, gotX, 1e-9)
+			assert.InDelta(want.Y, gotY, 1e-9)
+		}
+	}
 }

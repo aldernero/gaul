@@ -2,8 +2,9 @@ package gaul
 
 import (
 	"errors"
-	"github.com/tdewolff/canvas"
 	"math"
+
+	"github.com/aldernero/gaul/render"
 )
 
 var (
@@ -93,7 +94,7 @@ func (p RegularPolygon) ToCurve() Curve {
 	return curve
 }
 
-func (p RegularPolygon) Draw(ctx *canvas.Context) {
+func (p RegularPolygon) Draw(ctx *render.Context) {
 	curve := p.ToCurve()
 	curve.Draw(ctx)
 }

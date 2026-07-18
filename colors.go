@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"github.com/lucasb-eyer/go-colorful"
-	"github.com/tdewolff/canvas"
-	"github.com/tdewolff/canvas/renderers"
 	"golang.org/x/image/colornames"
+	"golang.org/x/image/font/gofont/goregular"
+
+	"github.com/aldernero/gaul/render"
 )
 
 type ColorType int
@@ -271,13 +272,13 @@ func (sp *SinePalette) Palette(num int) []color.Color {
 func (sp *SinePalette) ToGridPng() (string, error) {
 	w := 1024.0
 	h := 1024.0
-	c := canvas.New(w, h)
-	ctx := canvas.NewContext(c)
+	r := render.NewRaster(int(w), int(h))
+	ctx := render.NewContext(r)
 	ctx.SetStrokeWidth(0.1)
 	minPower := 0.0
 	maxPower := math.Floor(math.Log2(h)) - 1
 	y := 0.0
-	dy := h / float64(maxPower)
+	dy := h / maxPower
 	power := minPower
 	for y <= h {
 		n := math.Pow(2, power)
@@ -286,8 +287,9 @@ func (sp *SinePalette) ToGridPng() (string, error) {
 		for x <= w {
 			k := sp.ColorAt((x + 0.5*dx) / w)
 			ctx.SetFillColor(k)
-			ctx.SetFillColor(k)
-			ctx.DrawPath(x, y, canvas.Rectangle(dx, dy))
+			ctx.SetStrokeColor(k)
+			// Coarsest row at the bottom, like the original y-up layout.
+			ctx.DrawRectangle(x, h-y-dy, dx, dy)
 			ctx.FillStroke()
 			x += dx
 		}
@@ -295,7 +297,7 @@ func (sp *SinePalette) ToGridPng() (string, error) {
 		y += dy
 	}
 	fname := "gaul-sinepalette-grid_" + GetTimestampString() + ".png"
-	if err := renderers.Write(fname, c); err != nil {
+	if err := r.SavePNG(fname); err != nil {
 		return fname, err
 	}
 	return fname, nil
@@ -309,47 +311,45 @@ func (sp *SinePalette) ColorAtStop(i, n int) color.Color {
 }
 
 func (sp *SinePalette) ToPng() (string, error) {
-	w := 285.0
-	h := 55.0
-	c := canvas.New(w, h)
-	ctx := canvas.NewContext(c)
-	fontFamily := canvas.NewFontFamily("DejaVu Sans")
-	if err := fontFamily.LoadLocalFont("DejaVuSans", canvas.FontRegular); err != nil {
+	w := 570.0
+	h := 110.0
+	r := render.NewRaster(int(w), int(h))
+	ctx := render.NewContext(r)
+	ctx.Clear(color.Black)
+	font, err := render.LoadFont(goregular.TTF, "Go Regular")
+	if err != nil {
 		return "", err
 	}
-	fontFace := fontFamily.Face(14.0, color.White, canvas.FontRegular, canvas.FontNormal)
-	ctx.SetFillColor(canvas.Black)
-	ctx.SetStrokeColor(canvas.Transparent)
-	ctx.DrawPath(0, 0, canvas.Rectangle(ctx.Width(), ctx.Height()))
-	ctx.Close()
+	ctx.SetFont(font, 14)
+	// Layout: A and B labels above the palette strip (left- and
+	// right-aligned), C and D labels below.
+	left := 0.1 * w
+	right := 0.9 * w
+	topBaseline := 20.0
+	bottomBaseline := h - 8.0
+	stripTop := 30.0
+	stripBottom := h - 30.0
+	ctx.SetFillColor(color.White)
+	aText := "A = " + sp.A.ToString(3)
+	bText := "B = " + sp.B.ToString(3)
+	cText := "C = " + sp.C.ToString(3)
+	dText := "D = " + sp.D.ToString(3)
+	ctx.DrawString(aText, left, topBaseline)
+	ctx.DrawString(bText, right-ctx.MeasureString(bText), topBaseline)
+	ctx.DrawString(cText, left, bottomBaseline)
+	ctx.DrawString(dText, right-ctx.MeasureString(dText), bottomBaseline)
 	t := Linspace(0, 1, 1000, true)
 	dw := 0.8 * w / 1000
-	dh := 0.2 * h
-	aText := "A = " + sp.A.ToString(3)
-	aTextBox := canvas.NewTextBox(fontFace, aText, 0.8*w, 10, canvas.Left, canvas.Center, &canvas.TextOptions{})
-	bText := "B = " + sp.B.ToString(3)
-	bTextBox := canvas.NewTextBox(fontFace, bText, 0.8*w, 10, canvas.Right, canvas.Center, &canvas.TextOptions{})
-	cText := "C = " + sp.C.ToString(3)
-	cTextBox := canvas.NewTextBox(fontFace, cText, 0.8*w, 10, canvas.Left, canvas.Center, &canvas.TextOptions{})
-	dText := "D = " + sp.D.ToString(3)
-	dTextBox := canvas.NewTextBox(fontFace, dText, 0.8*w, 10, canvas.Right, canvas.Center, &canvas.TextOptions{})
-	ctx.SetFillColor(color.White)
-	ctx.SetStrokeColor(color.White)
-	ctx.DrawText(0.1*w, h+dh+8, aTextBox)
-	ctx.DrawText(0.1*w, h+dh+8, bTextBox)
-	ctx.DrawText(0.1*w, h-dh, cTextBox)
-	ctx.DrawText(0.1*w, h-dh, dTextBox)
 	ctx.SetStrokeWidth(2 * dw)
 	for i, j := range t {
-		lineColor1 := sp.ColorAt(j)
-		ctx.SetStrokeColor(lineColor1)
-		x := 0.1*w + float64(i)*dw
-		ctx.MoveTo(x, h-dh)
-		ctx.LineTo(x, h+dh)
+		ctx.SetStrokeColor(sp.ColorAt(j))
+		x := left + float64(i)*dw
+		ctx.MoveTo(x, stripTop)
+		ctx.LineTo(x, stripBottom)
 		ctx.Stroke()
 	}
 	fname := "gaul-sinepalette_" + GetTimestampString() + ".png"
-	if err := renderers.Write(fname, c); err != nil {
+	if err := r.SavePNG(fname); err != nil {
 		return "", err
 	}
 	return fname, nil

@@ -5,7 +5,7 @@ import (
 	"log"
 	"math"
 
-	"github.com/tdewolff/canvas"
+	"github.com/aldernero/gaul/render"
 )
 
 // Primitive types
@@ -77,9 +77,10 @@ func (p Point) IsEqual(q Point) bool {
 	return p.X == q.X && p.Y == q.Y
 }
 
-// Draw draws the point as a circle with a given radius using a canvas context
-func (p Point) Draw(s float64, ctx *canvas.Context) {
-	ctx.DrawPath(p.X, p.Y, canvas.Circle(s))
+// Draw draws the point as a circle with a given radius using a render context
+func (p Point) Draw(s float64, ctx *render.Context) {
+	ctx.DrawCircle(p.X, p.Y, s)
+	ctx.FillStroke()
 }
 
 // Scale multiplies point coordinates by a fixed value
@@ -163,12 +164,12 @@ func (p Point) ToVec2() Vec2 {
 
 // Distance between two points
 func Distance(p Point, q Point) float64 {
-	return math.Sqrt((q.X - p.X) * (q.X - p.X) + (q.Y - p.Y) * (q.Y - p.Y))
+	return math.Sqrt((q.X-p.X)*(q.X-p.X) + (q.Y-p.Y)*(q.Y-p.Y))
 }
 
 // SquaredDistance is the square of the distance between two points
 func SquaredDistance(p Point, q Point) float64 {
-	return (q.X - p.X) * (q.X - p.X) + (q.Y - p.Y) * (q.Y - p.Y)
+	return (q.X-p.X)*(q.X-p.X) + (q.Y-p.Y)*(q.Y-p.Y)
 }
 
 // Line functions
@@ -253,8 +254,8 @@ func (l Line) Lerp(i float64) Point {
 	}
 }
 
-// Draw draws the line given a canvas context
-func (l Line) Draw(ctx *canvas.Context) {
+// Draw draws the line given a render context
+func (l Line) Draw(ctx *render.Context) {
 	ctx.MoveTo(l.P.X, l.P.Y)
 	ctx.LineTo(l.Q.X, l.Q.Y)
 	ctx.Stroke()
@@ -536,8 +537,8 @@ func (c *Curve) PerpendicularAt(percentage float64, length float64) Line {
 	return line.PerpendicularAt(linePct, length)
 }
 
-// Draw draws the curve given a canvas context
-func (c *Curve) Draw(ctx *canvas.Context) {
+// Draw draws the curve given a render context
+func (c *Curve) Draw(ctx *render.Context) {
 	n := len(c.Points)
 	if n == 0 {
 		return
@@ -666,9 +667,10 @@ func (c *Curve) Stitch(d *Curve) {
 
 // Circle functions
 
-// Draw draws the circle given a canvas context
-func (c Circle) Draw(ctx *canvas.Context) {
-	ctx.DrawPath(c.Center.X, c.Center.Y, canvas.Circle(c.Radius))
+// Draw draws the circle given a render context
+func (c Circle) Draw(ctx *render.Context) {
+	ctx.DrawCircle(c.Center.X, c.Center.Y, c.Radius)
+	ctx.FillStroke()
 }
 
 // ToCurve calculates a curve that approximates the circle with a given resolution (number of sides)
@@ -778,10 +780,10 @@ func (r Rect) ToCurve() Curve {
 	return curve
 }
 
-// Draw draws the rectangle given a canvas context
-func (r Rect) Draw(ctx *canvas.Context) {
-	rect := canvas.Rectangle(r.W, r.H)
-	ctx.DrawPath(r.X, r.Y, rect)
+// Draw draws the rectangle given a render context
+func (r Rect) Draw(ctx *render.Context) {
+	ctx.DrawRectangle(r.X, r.Y, r.W, r.H)
+	ctx.FillStroke()
 }
 
 // Copy returns a new rectangle with the same corner, width, and height
@@ -847,8 +849,8 @@ func (t Triangle) Reverse() Triangle {
 	}
 }
 
-// Draw draws the triangle given a canvas context
-func (t Triangle) Draw(ctx *canvas.Context) {
+// Draw draws the triangle given a render context
+func (t Triangle) Draw(ctx *render.Context) {
 	ctx.MoveTo(t.A.X, t.A.Y)
 	ctx.LineTo(t.B.X, t.B.Y)
 	ctx.LineTo(t.C.X, t.C.Y)

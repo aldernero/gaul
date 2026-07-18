@@ -1,6 +1,10 @@
 package gaul
 
-import "math"
+import (
+	"math"
+
+	"github.com/aldernero/gaul/render"
+)
 
 // Affine2D is a type for dealing with affine transformations in 2D using homogeneous coordinates
 type Affine2D struct {
@@ -143,6 +147,13 @@ func (a *Affine2D) SetShearAngle(ax, ay float64) {
 // SetShearAngleDegrees sets the shear factor in the x and y directions
 func (a *Affine2D) SetShearAngleDegrees(ax, ay float64) {
 	a.SetShearAngle(Deg2Rad(ax), Deg2Rad(ay))
+}
+
+// ToMatrix converts the transformation to a render.Matrix, dropping the
+// projective row (g, h, i), which is unused by affine transforms. This lets
+// an Affine2D be applied to a render.Context via Transform/SetTransform.
+func (a *Affine2D) ToMatrix() render.Matrix {
+	return render.Matrix{A: a.a, C: a.b, E: a.c, B: a.d, D: a.e, F: a.f}
 }
 
 // Transform applies the affine transformation to a vector

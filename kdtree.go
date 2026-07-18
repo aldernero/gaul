@@ -1,7 +1,7 @@
 package gaul
 
 import (
-	"github.com/tdewolff/canvas"
+	"github.com/aldernero/gaul/render"
 )
 
 type KDTree struct {
@@ -153,11 +153,11 @@ func (k *KDTree) Size() int {
 	return count
 }
 
-func (k *KDTree) Draw(ctx *canvas.Context) {
+func (k *KDTree) Draw(ctx *render.Context) {
 	k.draw(ctx, 0, 0)
 }
 
-func (k *KDTree) DrawWithPoints(s float64, ctx *canvas.Context) {
+func (k *KDTree) DrawWithPoints(s float64, ctx *render.Context) {
 	k.draw(ctx, 0, s)
 }
 
@@ -233,7 +233,7 @@ func (k *KDTree) reportSubtree() []Point {
 	return results
 }
 
-func (k *KDTree) draw(ctx *canvas.Context, depth int, pointSize float64) {
+func (k *KDTree) draw(ctx *render.Context, depth int, pointSize float64) {
 	if k.point == nil {
 		return
 	}
@@ -247,7 +247,8 @@ func (k *KDTree) draw(ctx *canvas.Context, depth int, pointSize float64) {
 		ctx.Stroke()
 	}
 	if pointSize > 0 {
-		ctx.DrawPath(k.point.X, k.point.Y, canvas.Circle(pointSize))
+		ctx.DrawCircle(k.point.X, k.point.Y, pointSize)
+		ctx.FillStroke()
 	}
 
 	if k.left != nil {
