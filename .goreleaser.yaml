@@ -1,0 +1,24 @@
+version: 2
+
+project_name: gaul
+
+# gaul is a library with no main packages to build; goreleaser is used here
+# purely for changelog generation and GitHub release creation.
+builds:
+  - skip: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  github:
+    owner: aldernero
+    name: gaul
+  prerelease: auto
