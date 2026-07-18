@@ -23,6 +23,7 @@ type Raster struct {
 	img     *image.RGBA
 	rz      *ftraster.Rasterizer
 	painter *ftraster.RGBAPainter
+	scale   float64
 }
 
 // NewRaster returns a Raster with a new w x h image.
@@ -42,8 +43,26 @@ func NewRasterFromImage(img *image.RGBA) *Raster {
 		img:     img,
 		rz:      rz,
 		painter: ftraster.NewRGBAPainter(img),
+		scale:   1,
 	}
 }
+
+// SetScale sets the pixel scale: logical drawing coordinates are multiplied
+// by k when rasterizing, and the logical surface size reported by Size
+// becomes the image size divided by k. Stroke widths, dash patterns, text
+// sizes, and images scale uniformly, so a frame drawn in logical pixels
+// renders identically — just at k times the resolution — into a k-times
+// larger image. Use this for supersampled exports or low-resolution
+// previews. At, SetPixel, and Bounds remain in physical image pixels.
+func (r *Raster) SetScale(k float64) {
+	if k <= 0 {
+		k = 1
+	}
+	r.scale = k
+}
+
+// Scale returns the pixel scale (default 1).
+func (r *Raster) Scale() float64 { return r.scale }
 
 // Image returns the underlying image.
 func (r *Raster) Image() *image.RGBA { return r.img }
@@ -80,10 +99,11 @@ func (r *Raster) EncodePNG(w io.Writer) error {
 	return png.Encode(w, r.img)
 }
 
-// Size implements Renderer.
+// Size implements Renderer. It reports the logical surface size: the image
+// size divided by the pixel scale.
 func (r *Raster) Size() (float64, float64) {
 	b := r.img.Bounds()
-	return float64(b.Dx()), float64(b.Dy())
+	return float64(b.Dx()) / r.scale, float64(b.Dy()) / r.scale
 }
 
 // RenderPath implements Renderer.
@@ -92,6 +112,18 @@ func (r *Raster) RenderPath(p *Path, s Style) {
 	stroke := s.hasStroke()
 	if !fill && !stroke {
 		return
+	}
+	if r.scale != 1 {
+		p = p.Transform(Scaling(r.scale, r.scale))
+		s.StrokeWidth *= r.scale
+		if len(s.Dashes) > 0 {
+			dashes := make([]float64, len(s.Dashes))
+			for i, d := range s.Dashes {
+				dashes[i] = d * r.scale
+			}
+			s.Dashes = dashes
+			s.DashOffset *= r.scale
+		}
 	}
 	polys, closed := p.Flatten()
 	if len(polys) == 0 {
@@ -142,6 +174,9 @@ func (r *Raster) RenderPath(p *Path, s Style) {
 
 // RenderImage implements Renderer.
 func (r *Raster) RenderImage(img image.Image, m Matrix) {
+	if r.scale != 1 {
+		m = Scaling(r.scale, r.scale).Mul(m)
+	}
 	b := img.Bounds()
 	if dx, dy, ok := m.isIntTranslation(); ok {
 		dst := image.Rect(dx, dy, dx+b.Dx(), dy+b.Dy()).Add(r.img.Bounds().Min)
@@ -162,6 +197,8 @@ func (r *Raster) RenderText(text string, x, y float64, f *Font, sizePx float64, 
 	if f == nil || text == "" || !visible(c) {
 		return
 	}
+	x, y = x*r.scale, y*r.scale
+	sizePx *= r.scale
 	face, err := f.face(sizePx)
 	if err != nil {
 		return
