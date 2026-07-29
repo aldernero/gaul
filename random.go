@@ -1,7 +1,7 @@
 package gaul
 
 import (
-	"math/rand"
+	"math"
 	"time"
 
 	"github.com/peterhellberg/gfx"
@@ -29,6 +29,7 @@ type Rng struct {
 	xoffset     float64
 	yoffset     float64
 	zoffset     float64
+	woffset     float64
 }
 
 // NewRng returns a PRNG with a system and Noise generator
@@ -43,21 +44,44 @@ func NewRng(i int64) Rng {
 		xscale:      defaultScale,
 		yscale:      defaultScale,
 		zscale:      defaultScale,
+		wscale:      defaultScale,
 		xoffset:     0,
 		yoffset:     0,
 		zoffset:     0,
+		woffset:     0,
 	}
 }
 
+// Seed returns the seed the generator was created or reset with.
+func (r *Rng) Seed() int64 {
+	return r.seed
+}
+
+// SetSeed resets the generator to the given seed. A generator reset with
+// SetSeed(s) produces the same stream as a fresh NewRng(s).
 func (r *Rng) SetSeed(seed int64) {
 	r.seed = seed
 	r.Prng = NewLFSRLargeWithSeed(uint64(seed))
-	r.Prng.Next()
 	r.Simplex = gfx.NewSimplexNoise(seed)
 }
 
+// Float64 returns a uniformly distributed value in [0, 1) from the seeded
+// PRNG.
+func (r *Rng) Float64() float64 {
+	return r.Prng.Float64()
+}
+
+// Gaussian returns a normally distributed value with the given mean and
+// standard deviation, drawn from the seeded PRNG so that results are
+// reproducible for a given seed.
 func (r *Rng) Gaussian(mean float64, stdev float64) float64 {
-	return rand.NormFloat64()*stdev + mean
+	// Box-Muller transform. u1 must be strictly positive for the log.
+	u1 := r.Prng.Float64()
+	for u1 <= 0 {
+		u1 = r.Prng.Float64()
+	}
+	u2 := r.Prng.Float64()
+	return mean + stdev*math.Sqrt(-2*math.Log(u1))*math.Cos(Tau*u2)
 }
 
 // The Noise scale functions scale the position values passed into the
@@ -79,6 +103,11 @@ func (r *Rng) SetNoiseScaleZ(scale float64) {
 	r.zscale = scale
 }
 
+// SetNoiseScaleW scales the w position in Noise calculations
+func (r *Rng) SetNoiseScaleW(scale float64) {
+	r.wscale = scale
+}
+
 // The Noise offset functions simple increment/decrement the
 // position values before scaling
 
@@ -95,6 +124,11 @@ func (r *Rng) SetNoiseOffsetY(offset float64) {
 // SetNoiseOffsetZ offsets the z position in Noise calculations
 func (r *Rng) SetNoiseOffsetZ(offset float64) {
 	r.zoffset = offset
+}
+
+// SetNoiseOffsetW offsets the w position in Noise calculations
+func (r *Rng) SetNoiseOffsetW(offset float64) {
+	r.woffset = offset
 }
 
 // SetNoiseOctaves sets the number of steps when calculating fractal Noise
@@ -137,20 +171,20 @@ func (r *Rng) Noise4D(x float64, y float64, z float64, w float64) float64 {
 func (r *Rng) UniformRandomPoints(num int, rect Rect) []Point {
 	points := make([]Point, num)
 	for i := 0; i < num; i++ {
-		x := rect.X + rand.Float64()*rect.W
-		y := rect.Y + rand.Float64()*rect.H
+		x := rect.X + r.Prng.Float64()*rect.W
+		y := rect.Y + r.Prng.Float64()*rect.H
 		points[i] = Point{X: x, Y: y}
 	}
 	return points
 }
 
 func (r *Rng) NoisyRandomPoints(num int, threshold float64, rect Rect) []Point {
-	var points []Point
+	points := make([]Point, 0, num)
 	maxtries := 10 * num
 	i := 0
 	for len(points) < num && i < maxtries {
-		x := rect.X + rand.Float64()*rect.W
-		y := rect.Y + rand.Float64()*rect.H
+		x := rect.X + r.Prng.Float64()*rect.W
+		y := rect.Y + r.Prng.Float64()*rect.H
 		noise := r.Noise2D(x, y)
 		if noise >= threshold {
 			points = append(points, Point{X: x, Y: y})
@@ -182,34 +216,41 @@ func (r *Rng) calcNoise(dim int, x, y, z, w float64) float64 {
 	amp := 1.0
 	freq := 1.0
 	for i := 0; i < r.octaves; i++ {
+		var sample float64
 		switch dim {
 		case 1:
-			totalNoise += r.Simplex.Noise2D(
+			sample = r.Simplex.Noise2D(
 				(x+r.xoffset)*r.xscale*freq,
 				0,
 			)
 		case 2:
-			totalNoise += r.Simplex.Noise2D(
+			sample = r.Simplex.Noise2D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 			)
 		case 3:
-			totalNoise += r.Simplex.Noise3D(
+			sample = r.Simplex.Noise3D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 				(z+r.zoffset)*r.zscale*freq,
 			)
 		case 4:
-			totalNoise += r.Simplex.Noise4D(
+			sample = r.Simplex.Noise4D(
 				(x+r.xoffset)*r.xscale*freq,
 				(y+r.yoffset)*r.yscale*freq,
 				(z+r.zoffset)*r.zscale*freq,
-				(w+r.zoffset)*r.wscale*freq,
+				(w+r.woffset)*r.wscale*freq,
 			)
 		}
+		// Each octave contributes at its own amplitude; without this factor
+		// persistence has no effect and every octave weighs the same.
+		totalNoise += amp * sample
 		totalAmp += amp
 		amp *= r.persistence
 		freq *= r.lacunarity
+	}
+	if totalAmp == 0 {
+		return 0
 	}
 	return totalNoise / totalAmp
 }
@@ -218,7 +259,13 @@ type LFSRSmall struct {
 	state uint16
 }
 
+// NewLFSRSmallWithSeed returns a 16-bit LFSR seeded with the given value. A
+// zero seed would lock the register at zero, so it is replaced with a
+// non-zero constant.
 func NewLFSRSmallWithSeed(seed uint16) LFSRSmall {
+	if seed == 0 {
+		seed = 0xACE1
+	}
 	return LFSRSmall{state: seed}
 }
 
@@ -236,7 +283,13 @@ type LFSRMedium struct {
 	state uint32
 }
 
+// NewLFSRMediumWithSeed returns a 32-bit xorshift generator seeded with the
+// given value. Xorshift has no escape from an all-zero state, so a zero seed
+// is replaced with a fixed non-zero constant.
 func NewLFSRMediumWithSeed(seed uint32) LFSRMedium {
+	if seed == 0 {
+		seed = 0x9E3779B9
+	}
 	return LFSRMedium{state: seed}
 }
 
@@ -258,7 +311,13 @@ type LFSRLarge struct {
 	state uint64
 }
 
+// NewLFSRLargeWithSeed returns a 64-bit xorshift generator seeded with the
+// given value. Xorshift has no escape from an all-zero state, so a zero seed
+// is replaced with a fixed non-zero constant.
 func NewLFSRLargeWithSeed(seed uint64) LFSRLarge {
+	if seed == 0 {
+		seed = 0x9E3779B97F4A7C15
+	}
 	return LFSRLarge{state: seed}
 }
 
@@ -273,8 +332,11 @@ func (l *LFSRLarge) Next() uint64 {
 	return l.state
 }
 
+// Float64 returns a uniformly distributed value in [0, 1). The top 53 bits
+// are used, which is the most a float64 can represent exactly; dividing the
+// full 64-bit word by 2^64-1 would instead make 1.0 attainable.
 func (l *LFSRLarge) Float64() float64 {
-	return float64(l.Next()) / float64(^uint64(0))
+	return float64(l.Next()>>11) / (1 << 53)
 }
 
 func (l *LFSRLarge) Uint64n(n uint64) uint64 {

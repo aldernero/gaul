@@ -50,8 +50,13 @@ func (r *Recorder) Size() (float64, float64) { return r.w, r.h }
 // Empty reports whether nothing has been recorded.
 func (r *Recorder) Empty() bool { return len(r.ops) == 0 }
 
-// Reset discards all recorded operations, keeping the backing array.
-func (r *Recorder) Reset() { r.ops = r.ops[:0] }
+// Reset discards all recorded operations, keeping the backing array. The
+// cleared entries are zeroed so the recording does not pin paths, images, and
+// fonts alive in the retained array.
+func (r *Recorder) Reset() {
+	clear(r.ops)
+	r.ops = r.ops[:0]
+}
 
 // RenderPath implements Renderer.
 func (r *Recorder) RenderPath(p *Path, s Style) {

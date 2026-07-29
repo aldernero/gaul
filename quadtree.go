@@ -65,9 +65,11 @@ func (q *QuadTree) Search(p IndexPoint) *IndexPoint {
 	if !q.boundary.ContainsPoint(p.Point) {
 		return nil
 	}
-	for _, point := range q.points {
-		if point.IsEqual(p.Point) {
-			return &point
+	for i := range q.points {
+		if q.points[i].IsEqual(p.Point) {
+			// Point into the tree's own storage, not a copy of the loop
+			// variable, so callers see the stored point (matching UpdateIndex).
+			return &q.points[i]
 		}
 	}
 	if q.ne == nil {
@@ -179,8 +181,8 @@ func (q *QuadTree) QueryCircle(center Point, radius float64) []Point {
 	rect := Rect{
 		X: center.X - radius,
 		Y: center.Y - radius,
-		W: radius,
-		H: radius,
+		W: 2 * radius,
+		H: 2 * radius,
 	}
 	rectQuery := q.Query(rect)
 	var results []Point
@@ -197,8 +199,8 @@ func (q *QuadTree) QueryCircleExcludeIndex(center Point, radius float64, index i
 	rect := Rect{
 		X: center.X - radius,
 		Y: center.Y - radius,
-		W: radius,
-		H: radius,
+		W: 2 * radius,
+		H: 2 * radius,
 	}
 	rectQuery := q.QueryExcludeIndex(rect, index)
 	var results []Point

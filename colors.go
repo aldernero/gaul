@@ -1,6 +1,8 @@
 package gaul
 
 import (
+	"errors"
+	"fmt"
 	"image/color"
 	"math"
 	"regexp"
@@ -48,28 +50,63 @@ func (cc *ColorConfig) Set(hexString string, colorType ColorType, defaultString 
 	}
 }
 
-func StringToColor(colorString string) color.Color {
+// hexColorRe matches a full 6-digit hex color. It is anchored so that strings
+// merely containing a hex code are not mistaken for one, and compiled once
+// rather than on every parse.
+var hexColorRe = regexp.MustCompile(`^#[0-9a-f]{6}$`)
+
+// ErrInvalidColor is returned by ParseColor and LookupNamedColor for a string
+// that is neither a 6-digit hex color nor a known SVG color name.
+var ErrInvalidColor = errors.New("invalid color")
+
+// ParseColor converts a "#rrggbb" hex string or an SVG color name into a
+// color. An empty string yields a transparent color. It returns an error
+// wrapping ErrInvalidColor if the string is neither.
+func ParseColor(colorString string) (color.Color, error) {
 	if colorString == "" {
-		return color.Transparent
+		return color.Transparent, nil
 	}
-	re := regexp.MustCompile("#[0-9a-f]{6}")
 	name := strings.ToLower(colorString)
-	if re.MatchString(name) {
+	if hexColorRe.MatchString(name) {
 		c, err := colorful.Hex(name)
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("%w: %q: %w", ErrInvalidColor, colorString, err)
 		}
-		return c
+		return c, nil
 	}
-	return NamedColor(name)
+	return LookupNamedColor(name)
 }
 
-func NamedColor(name string) color.Color {
+// LookupNamedColor returns the SVG color with the given name, case
+// insensitively. It returns an error wrapping ErrInvalidColor if the name is
+// unknown.
+func LookupNamedColor(name string) (color.Color, error) {
 	val, ok := colornames.Map[strings.ToLower(name)]
 	if !ok {
-		panic("invalid color name")
+		return nil, fmt.Errorf("%w: unknown color name %q", ErrInvalidColor, name)
 	}
-	return val
+	return val, nil
+}
+
+// StringToColor converts a "#rrggbb" hex string or an SVG color name into a
+// color, panicking if the string is neither. Use [ParseColor] to handle
+// invalid input.
+func StringToColor(colorString string) color.Color {
+	c, err := ParseColor(colorString)
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
+// NamedColor returns the SVG color with the given name, panicking if the name
+// is unknown. Use [LookupNamedColor] to handle invalid input.
+func NamedColor(name string) color.Color {
+	c, err := LookupNamedColor(name)
+	if err != nil {
+		panic(err)
+	}
+	return c
 }
 
 type SimpleGradient struct {
@@ -119,6 +156,9 @@ func NewGradientFromNamed(names []string) Gradient {
 func (g *Gradient) Color(percentage float64) color.Color {
 	val := Clamp(0, 1, percentage)
 	n := g.NumStops()
+	if n == 0 {
+		return color.Transparent
+	}
 	if n == 1 {
 		return g.stops[0]
 	}
@@ -131,7 +171,7 @@ func (g *Gradient) Color(percentage float64) color.Color {
 	if val == 1 {
 		return g.stops[n-1]
 	}
-	i := Map(0, 1, 0, float64(n)-1, percentage)
+	i := Map(0, 1, 0, float64(n)-1, val)
 	lerp := i - math.Floor(i)
 	index := int(math.Floor(i))
 	c1, _ := colorful.MakeColor(g.stops[index])
@@ -178,13 +218,19 @@ func (g *Gradient) LinearPaletteStrings(num int) []string {
 	palette := g.LinearPalette(num)
 	paletteStrings := make([]string, num)
 	for i, c := range palette {
-		d, ok := colorful.MakeColor(c)
-		if !ok {
-			panic("invalid color")
-		}
-		paletteStrings[i] = d.Hex()
+		paletteStrings[i] = hexOf(c)
 	}
 	return paletteStrings
+}
+
+// hexOf renders a color as "#rrggbb". colorful.MakeColor cannot convert a
+// fully transparent color (it divides by alpha), so that case is handled
+// separately rather than panicking.
+func hexOf(c color.Color) string {
+	if d, ok := colorful.MakeColor(c); ok {
+		return d.Hex()
+	}
+	return "#000000"
 }
 
 type ColorSpace int
@@ -275,26 +321,24 @@ func (sp *SinePalette) ToGridPng() (string, error) {
 	r := render.NewRaster(int(w), int(h))
 	ctx := render.NewContext(r)
 	ctx.SetStrokeWidth(0.1)
-	minPower := 0.0
-	maxPower := math.Floor(math.Log2(h)) - 1
-	y := 0.0
-	dy := h / maxPower
-	power := minPower
-	for y <= h {
-		n := math.Pow(2, power)
-		x := 0.0
-		dx := w / n
-		for x <= w {
+	// Each row halves the cell width: row r has 2^r cells. Looping over
+	// integer row and column counts keeps the final row and column on the
+	// canvas, which a floating-point "for y <= h" accumulation does not.
+	rows := int(math.Floor(math.Log2(h))) - 1
+	dy := h / float64(rows)
+	for row := 0; row < rows; row++ {
+		cols := 1 << uint(row)
+		dx := w / float64(cols)
+		y := float64(row) * dy
+		for col := 0; col < cols; col++ {
+			x := float64(col) * dx
 			k := sp.ColorAt((x + 0.5*dx) / w)
 			ctx.SetFillColor(k)
 			ctx.SetStrokeColor(k)
 			// Coarsest row at the bottom, like the original y-up layout.
 			ctx.DrawRectangle(x, h-y-dy, dx, dy)
 			ctx.FillStroke()
-			x += dx
 		}
-		power += 1.0
-		y += dy
 	}
 	fname := "gaul-sinepalette-grid_" + GetTimestampString() + ".png"
 	if err := r.SavePNG(fname); err != nil {

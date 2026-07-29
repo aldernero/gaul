@@ -51,6 +51,9 @@ func (v Vec2) Normalize() Vec2 {
 
 func (v Vec2) UnitNormal() Vec2 {
 	m := v.Mag()
+	if m == 0 {
+		panic("cannot take the unit normal of a vector with zero magnitude")
+	}
 	return Vec2{X: v.Y / m, Y: -v.X / m}
 }
 

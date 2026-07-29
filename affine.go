@@ -114,12 +114,16 @@ func (a *Affine2D) SetTranslation(tx, ty float64) {
 	a.f = ty
 }
 
-// SetRotation sets the rotation for the transformation
+// SetRotation sets the rotation for the transformation, replacing the linear
+// (2x2) part of the matrix. Like SetScale and SetTranslation this assigns the
+// component rather than composing with what is already there; use Mult with
+// NewAffine2DWithRotation to compose a rotation onto an existing transform.
 func (a *Affine2D) SetRotation(angle float64) {
-	a.a *= math.Cos(angle)
-	a.b *= -math.Sin(angle)
-	a.d *= math.Sin(angle)
-	a.e *= math.Cos(angle)
+	sin, cos := math.Sincos(angle)
+	a.a = cos
+	a.b = -sin
+	a.d = sin
+	a.e = cos
 }
 
 // SetRotationDegrees sets the rotation of the transformation
@@ -129,14 +133,8 @@ func (a *Affine2D) SetRotationDegrees(angle float64) {
 
 // SetShearFactor sets the shear factor in the x and y directions
 func (a *Affine2D) SetShearFactor(sx, sy float64) {
-	if a.b == 0 {
-		a.b = sx
-	} else {
-		a.b *= sx
-	}
-	if a.d == 0 {
-		a.d *= sy
-	}
+	a.b = sx
+	a.d = sy
 }
 
 // SetShearAngle sets the shear factor in the x and y directions
@@ -185,37 +183,64 @@ func (a *Affine2D) TransformCurve(c Curve) Curve {
 	return curve
 }
 
-// RotateAboutPoint rotates a vector around a point instead of the origin
+// NewAffine2DWithRotationAbout returns an affine transformation that rotates
+// by angle radians about the given point rather than the origin.
+func NewAffine2DWithRotationAbout(angle float64, point Point) *Affine2D {
+	return Mult(
+		NewAffine2DWithTranslation(point.X, point.Y),
+		Mult(NewAffine2DWithRotation(angle), NewAffine2DWithTranslation(-point.X, -point.Y)),
+	)
+}
+
+// RotateVecAboutPoint rotates a vector around a point instead of the origin.
+func RotateVecAboutPoint(vec Vec2, angle float64, point Point) Vec2 {
+	return NewAffine2DWithRotationAbout(angle, point).MultVec(vec)
+}
+
+// RotatePointAboutPoint rotates a point around a point instead of the origin.
+func RotatePointAboutPoint(point Point, angle float64, rotationPoint Point) Point {
+	return RotateVecAboutPoint(point.ToVec2(), angle, rotationPoint).ToPoint()
+}
+
+// RotateLineAboutPoint rotates a line around a point instead of the origin.
+func RotateLineAboutPoint(line Line, angle float64, rotationPoint Point) Line {
+	m := NewAffine2DWithRotationAbout(angle, rotationPoint)
+	return m.TransformLine(line)
+}
+
+// RotateCurveAboutPoint rotates a curve around a point instead of the origin.
+func RotateCurveAboutPoint(curve Curve, angle float64, rotationPoint Point) Curve {
+	return NewAffine2DWithRotationAbout(angle, rotationPoint).TransformCurve(curve)
+}
+
+// RotateAboutPoint rotates a vector around a point instead of the origin.
+//
+// Deprecated: the receiver is unused. Use the package-level
+// [RotateVecAboutPoint] instead.
 func (a *Affine2D) RotateAboutPoint(vec Vec2, angle float64, point Point) Vec2 {
-	moveOrigin := NewAffine2DWithTranslation(-point.X, -point.Y)
-	rotate := NewAffine2DWithRotation(angle)
-	returnOrigin := NewAffine2DWithTranslation(point.X, point.Y)
-	temp1 := moveOrigin.Transform(vec)
-	temp2 := rotate.Transform(temp1)
-	result := returnOrigin.Transform(temp2)
-	return result
+	return RotateVecAboutPoint(vec, angle, point)
 }
 
-// RotatePointAboutPoint rotates a point around a point instead of the origin
+// RotatePointAboutPoint rotates a point around a point instead of the origin.
+//
+// Deprecated: the receiver is unused. Use the package-level
+// [RotatePointAboutPoint] instead.
 func (a *Affine2D) RotatePointAboutPoint(point Point, angle float64, rotationPoint Point) Point {
-	vec := a.RotateAboutPoint(point.ToVec2(), angle, rotationPoint)
-	return vec.ToPoint()
+	return RotatePointAboutPoint(point, angle, rotationPoint)
 }
 
-// RotateLineAboutPoint rotates a line around a point instead of the origin
+// RotateLineAboutPoint rotates a line around a point instead of the origin.
+//
+// Deprecated: the receiver is unused. Use the package-level
+// [RotateLineAboutPoint] instead.
 func (a *Affine2D) RotateLineAboutPoint(line Line, angle float64, rotationPoint Point) Line {
-	return Line{
-		P: a.RotatePointAboutPoint(line.P, angle, rotationPoint),
-		Q: a.RotatePointAboutPoint(line.Q, angle, rotationPoint),
-	}
+	return RotateLineAboutPoint(line, angle, rotationPoint)
 }
 
-// RotateCurveAboutPoint rotates a curve around a point instead of the origin
+// RotateCurveAboutPoint rotates a curve around a point instead of the origin.
+//
+// Deprecated: the receiver is unused. Use the package-level
+// [RotateCurveAboutPoint] instead.
 func (a *Affine2D) RotateCurveAboutPoint(curve Curve, angle float64, rotationPoint Point) Curve {
-	var result Curve
-	result.Closed = curve.Closed
-	for _, p := range curve.Points {
-		result.Points = append(result.Points, a.RotatePointAboutPoint(p, angle, rotationPoint))
-	}
-	return result
+	return RotateCurveAboutPoint(curve, angle, rotationPoint)
 }

@@ -203,11 +203,15 @@ func (r *Raster) RenderText(text string, x, y float64, f *Font, sizePx float64, 
 	if err != nil {
 		return
 	}
+	// Device (0, 0) is the image's Bounds().Min corner; RenderPath gets this
+	// from the rasterizer's Dx/Dy, but the glyph drawer works in raw image
+	// coordinates and needs the offset applied here.
+	rmin := r.img.Bounds().Min
 	d := font.Drawer{
 		Dst:  r.img,
 		Src:  image.NewUniform(c),
 		Face: face,
-		Dot:  fixed.Point26_6{X: fix(x), Y: fix(y)},
+		Dot:  fixed.Point26_6{X: fix(x + float64(rmin.X)), Y: fix(y + float64(rmin.Y))},
 	}
 	d.DrawString(text)
 }

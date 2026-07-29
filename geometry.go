@@ -2,7 +2,6 @@ package gaul
 
 import (
 	"fmt"
-	"log"
 	"math"
 
 	"github.com/aldernero/gaul/render"
@@ -100,8 +99,9 @@ func (p Point) ScaleY(y float64) Point {
 
 // Rotate calculates a new point rotated around the origin by a given angle
 func (p Point) Rotate(a float64) Point {
-	x := p.X*math.Cos(a) - p.Y*math.Sin(a)
-	y := p.Y*math.Sin(a) + p.Y*math.Cos(a)
+	sin, cos := math.Sincos(a)
+	x := p.X*cos - p.Y*sin
+	y := p.X*sin + p.Y*cos
 	return Point{X: x, Y: y}
 }
 
@@ -183,12 +183,11 @@ func (l Line) IsEqual(k Line) bool {
 	return l.P.IsEqual(k.P) && l.Q.IsEqual(k.Q)
 }
 
-// Angle calculates the angle between the line and the x-axis
+// Angle calculates the angle between the line and the x-axis, in the range
+// (-Pi, Pi]. Atan2 is used rather than Atan(dy/dx) so that the direction of
+// the line is preserved and vertical lines do not divide by zero.
 func (l Line) Angle() float64 {
-	dy := l.Q.Y - l.P.Y
-	dx := l.Q.X - l.P.X
-	angle := math.Atan(dy / dx)
-	return angle
+	return math.Atan2(l.Q.Y-l.P.Y, l.Q.X-l.P.X)
 }
 
 // Slope computes the slope of the line
@@ -385,8 +384,11 @@ func (l Line) SDF(p Point) float64 {
 
 // Length Calculates the length of the line segments of a curve
 func (c *Curve) Length() float64 {
-	result := 0.0
 	n := len(c.Points)
+	if n < 2 {
+		return 0
+	}
+	result := 0.0
 	for i := 0; i < n-1; i++ {
 		result += Distance(c.Points[i], c.Points[i+1])
 	}
@@ -446,89 +448,77 @@ func (c *Curve) AddPoint(x, y float64) {
 	c.Points = append(c.Points, Point{X: x, Y: y})
 }
 
-// Lerp calculates a point a given percentage along a curve
+// Lerp calculates a point a given percentage along a curve. The percentage is
+// clamped to [0, 1]. An empty curve yields the zero Point.
 func (c *Curve) Lerp(percentage float64) Point {
-	var point Point
-	if percentage < 0 || percentage > 1 {
-		log.Fatalf("percentage in Lerp not between 0 and 1: %v\n", percentage)
+	n := len(c.Points)
+	if n == 0 {
+		return Point{}
 	}
+	percentage = Clamp(0, 1, percentage)
 	if NoTinyVals(percentage) == 0 {
 		return c.Points[0]
 	}
 	if math.Abs(percentage-1) < Smol {
 		return c.Last()
 	}
-	totalDist := c.Length()
-	targetDist := percentage * totalDist
+	targetDist := percentage * c.Length()
 	partialDist := 0.0
-	var foundPoint bool
-	n := len(c.Points)
 	for i := 0; i < n-1; i++ {
 		dist := Distance(c.Points[i], c.Points[i+1])
 		if partialDist+dist >= targetDist {
-			remainderDist := targetDist - partialDist
-			pct := remainderDist / dist
-			point = c.Points[i].Lerp(c.Points[i+1], pct)
-			foundPoint = true
-			break
+			return c.Points[i].Lerp(c.Points[i+1], (targetDist-partialDist)/dist)
 		}
 		partialDist += dist
 	}
-	if !foundPoint {
-		if c.Closed {
-			dist := Distance(c.Points[n-1], c.Points[0])
-			remainderDist := targetDist - partialDist
-			pct := remainderDist / dist
-			point = c.Points[n-1].Lerp(c.Points[0], pct)
-		} else {
-			panic("couldn't find curve lerp point")
+	if c.Closed {
+		dist := Distance(c.Points[n-1], c.Points[0])
+		if dist == 0 {
+			return c.Points[n-1]
 		}
+		return c.Points[n-1].Lerp(c.Points[0], (targetDist-partialDist)/dist)
 	}
-	return point
+	// Floating-point drift can leave targetDist a hair past the accumulated
+	// length; the last point is the correct answer.
+	return c.Last()
 }
 
-// LineAt returns the line segment in a curve that is closest to the given percentage along the curve's length
+// LineAt returns the line segment in a curve that is closest to the given
+// percentage along the curve's length, along with how far along that segment
+// the position falls. The percentage is clamped to [0, 1]. A curve with fewer
+// than two points yields a zero-length line.
 func (c *Curve) LineAt(percentage float64) (Line, float64) {
-	var line Line
-	var linePct float64
-	if percentage < 0 || percentage > 1 {
-		log.Fatalf("percentage in Lerp not between 0 and 1: %v\n", percentage)
+	n := len(c.Points)
+	if n < 2 {
+		return c.LastLine(), 0
 	}
+	percentage = Clamp(0, 1, percentage)
 	if NoTinyVals(percentage) == 0 {
 		return Line{P: c.Points[0], Q: c.Points[1]}, 0
 	}
 	if math.Abs(percentage-1) < Smol {
 		return c.LastLine(), 1
 	}
-	totalDist := c.Length()
-	targetDist := percentage * totalDist
+	targetDist := percentage * c.Length()
 	partialDist := 0.0
-	var foundPoint bool
-	n := len(c.Points)
 	for i := 0; i < n-1; i++ {
 		dist := Distance(c.Points[i], c.Points[i+1])
 		if partialDist+dist >= targetDist {
-			remainderDist := targetDist - partialDist
-			linePct = remainderDist / dist
-			line.P = c.Points[i]
-			line.Q = c.Points[i+1]
-			foundPoint = true
-			break
+			return Line{P: c.Points[i], Q: c.Points[i+1]}, (targetDist - partialDist) / dist
 		}
 		partialDist += dist
 	}
-	if !foundPoint {
-		if c.Closed {
-			dist := Distance(c.Points[n-1], c.Points[0])
-			remainderDist := targetDist - partialDist
-			linePct = remainderDist / dist
-			line.P = c.Points[n-1]
-			line.Q = c.Points[0]
-		} else {
-			panic("couldn't find curve lerp point")
+	if c.Closed {
+		dist := Distance(c.Points[n-1], c.Points[0])
+		line := Line{P: c.Points[n-1], Q: c.Points[0]}
+		if dist == 0 {
+			return line, 0
 		}
+		return line, (targetDist - partialDist) / dist
 	}
-	return line, linePct
+	// Floating-point drift can leave targetDist a hair past the accumulated
+	// length; the last segment is the correct answer.
+	return c.LastLine(), 1
 }
 
 // PerpendicularAt calculates a line that is perpendicular to the curve at a given percentage along the curve's length
@@ -583,52 +573,73 @@ func (c *Curve) Translate(x, y float64) {
 	}
 }
 
-// Copy returns a new line with the same points and closed property
+// Copy returns a new curve with the same points and closed property
 func (c *Curve) Copy() Curve {
-	var curve Curve
-	curve.Closed = true
-	for _, p := range c.Points {
-		curve.AddPoint(p.X, p.Y)
+	curve := Curve{Closed: c.Closed}
+	if len(c.Points) > 0 {
+		curve.Points = append(make([]Point, 0, len(c.Points)), c.Points...)
 	}
 	return curve
 }
 
+// signedArea is the shoelace area of the curve, positive for one winding
+// direction and negative for the other. Centroid needs the sign; Area does
+// not.
+func (c *Curve) signedArea() float64 {
+	n := len(c.Points)
+	area := 0.0
+	for i := 0; i < n; i++ {
+		p := c.Points[i]
+		q := c.Points[(i+1)%n]
+		area += p.X*q.Y - q.X*p.Y
+	}
+	return 0.5 * area
+}
+
+// Area returns the area enclosed by a closed curve, or NaN if the curve is
+// open. The result is always non-negative regardless of winding direction.
 func (c *Curve) Area() float64 {
 	if !c.Closed {
 		return math.NaN()
 	}
-	// shoelace formula
-	n := len(c.Points)
-	area := 0.0
-	for i := 0; i < n; i++ {
-		area += c.Points[i].X*c.Points[(i+1)%n].Y - c.Points[(i+1)%n].X*c.Points[i].Y
-	}
-	return 0.5 * math.Abs(area)
+	return math.Abs(c.signedArea())
 }
 
-// Centroid returns the centroid for the curve
+// Centroid returns the centroid for the curve. For an open curve this is the
+// mean of its points; for a closed curve it is the polygon centroid. A closed
+// curve with zero area (empty, degenerate, or self-cancelling) falls back to
+// the mean of its points.
 func (c *Curve) Centroid() Point {
-	if !c.Closed {
-		N := float64(len(c.Points))
+	n := len(c.Points)
+	if n == 0 {
+		return Point{}
+	}
+	meanPoint := func() Point {
 		var totalX, totalY float64
 		for _, p := range c.Points {
 			totalX += p.X
 			totalY += p.Y
 		}
-		return Point{X: totalX / N, Y: totalY / N}
+		return Point{X: totalX / float64(n), Y: totalY / float64(n)}
 	}
-	N := len(c.Points)
+	if !c.Closed {
+		return meanPoint()
+	}
+	// The shoelace centroid needs the signed area: using the absolute value
+	// negates the result for one of the two winding directions.
+	a := c.signedArea()
+	if a == 0 {
+		return meanPoint()
+	}
 	var cx, cy float64
-	A := c.Area()
-	for i := 0; i < N; i++ {
+	for i := 0; i < n; i++ {
 		p := c.Points[i]
-		q := c.Points[(i+1)%N]
-		cx += (p.X + q.X) * (p.X*q.Y - q.X*p.Y)
-		cy += (p.Y + q.Y) * (p.X*q.Y - q.X*p.Y)
+		q := c.Points[(i+1)%n]
+		cross := p.X*q.Y - q.X*p.Y
+		cx += (p.X + q.X) * cross
+		cy += (p.Y + q.Y) * cross
 	}
-	cx /= 6 * A
-	cy /= 6 * A
-	return Point{X: cx, Y: cy}
+	return Point{X: cx / (6 * a), Y: cy / (6 * a)}
 }
 
 // Boundary returns the smallest rect that contains all the points in the curve
@@ -705,12 +716,8 @@ func (c Circle) Copy() Circle {
 
 // Boundary returns the smallest rect that contains all points on the circle
 func (c Circle) Boundary() Rect {
-	x := c.Center.X
-	y := c.Center.Y
 	r := c.Radius
-	minX := x + r*math.Cos(Pi)
-	minY := y + r*math.Sin(Pi/2)
-	return Rect{X: minX, Y: minY, W: 2 * r, H: 2 * r}
+	return Rect{X: c.Center.X - r, Y: c.Center.Y - r, W: 2 * r, H: 2 * r}
 }
 
 // Rect functions
@@ -762,7 +769,7 @@ func (r Rect) Intersects(rect Rect) bool {
 		return false
 	}
 
-	if b.Y >= c.Y || d.Y >= a.Y {
+	if a.Y >= d.Y || c.Y >= b.Y {
 		return false
 	}
 
@@ -905,8 +912,6 @@ func (t Triangle) Angles() (alpha, beta, gamma float64) {
 	cosBeta := (a*a + c*c - b*b) / (2 * a * c)
 	cosGamma := (a*a + b*b - c*c) / (2 * a * b)
 
-	fmt.Printf("Angles: cosines %.10f, %.10f, %.10f\n", cosAlpha, cosBeta, cosGamma)
-
 	// Clamp cosine values to valid range
 	cosAlpha = math.Max(-1, math.Min(1, cosAlpha))
 	cosBeta = math.Max(-1, math.Min(1, cosBeta))
@@ -915,8 +920,6 @@ func (t Triangle) Angles() (alpha, beta, gamma float64) {
 	alpha = math.Acos(cosAlpha)
 	beta = math.Acos(cosBeta)
 	gamma = math.Acos(cosGamma)
-
-	fmt.Printf("Angles: %.10f, %.10f, %.10f\n", alpha, beta, gamma)
 
 	return
 }
@@ -927,14 +930,10 @@ func (t Triangle) IsIsosceles() bool {
 	b := t.AC()
 	c := t.BC()
 
-	fmt.Printf("IsIsosceles: sides a=%.10f, b=%.10f, c=%.10f\n", a, b, c)
-
 	// Compare ratios with a relative tolerance
 	ratio1 := math.Abs(a/b - 1)
 	ratio2 := math.Abs(b/c - 1)
 	ratio3 := math.Abs(a/c - 1)
-
-	fmt.Printf("IsIsosceles: ratios %.10f, %.10f, %.10f (tolerance %.10f)\n", ratio1, ratio2, ratio3, Smol)
 
 	return ratio1 <= Smol || ratio2 <= Smol || ratio3 <= Smol
 }
@@ -945,14 +944,10 @@ func (t Triangle) IsEquilateral() bool {
 	b := t.AC()
 	c := t.BC()
 
-	fmt.Printf("IsEquilateral: sides a=%.10f, b=%.10f, c=%.10f\n", a, b, c)
-
 	// All ratios must be close to 1
 	ratio1 := math.Abs(a/b - 1)
 	ratio2 := math.Abs(b/c - 1)
 	ratio3 := math.Abs(a/c - 1)
-
-	fmt.Printf("IsEquilateral: ratios %.10f, %.10f, %.10f (tolerance %.10f)\n", ratio1, ratio2, ratio3, Smol)
 
 	return ratio1 <= Smol && ratio2 <= Smol && ratio3 <= Smol
 }

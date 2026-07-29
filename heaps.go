@@ -1,66 +1,63 @@
 package gaul
 
-// PointHeap is a min/max heap for Points using inter-point distance as the metric
+// PointHeap is a binary min/max heap of MetricPoints ordered by their Metric
+// field, which is typically an inter-point distance.
 type PointHeap struct {
-	size      int
 	points    []MetricPoint
 	isMinHeap bool
 }
 
+// NewMaxPointHeap returns an empty heap whose root is the largest metric.
 func NewMaxPointHeap() *PointHeap {
-	return &PointHeap{
-		size:      0,
-		points:    []MetricPoint{},
-		isMinHeap: false,
-	}
+	return &PointHeap{isMinHeap: false}
 }
 
+// NewMinPointHeap returns an empty heap whose root is the smallest metric.
 func NewMinPointHeap() *PointHeap {
-	return &PointHeap{
-		size:      0,
-		points:    []MetricPoint{},
-		isMinHeap: true,
-	}
+	return &PointHeap{isMinHeap: true}
 }
 
+// Len returns the number of points in the heap.
 func (m *PointHeap) Len() int {
-	return m.size
+	return len(m.points)
 }
 
+// Push adds a point to the heap.
 func (m *PointHeap) Push(p MetricPoint) {
 	m.points = append(m.points, p)
-	index := m.size
-	m.size++
-	if m.isMinHeap {
-		for m.points[index].Metric < m.points[m.parent(index)].Metric {
-			m.swap(index, m.parent(index))
-			index = m.parent(index)
-		}
-	} else {
-		for m.points[index].Metric > m.points[m.parent(index)].Metric {
-			m.swap(index, m.parent(index))
-			index = m.parent(index)
-		}
-	}
+	m.siftUp(len(m.points) - 1)
 }
 
+// Peek returns the root of the heap without removing it. It panics if the
+// heap is empty.
 func (m *PointHeap) Peek() MetricPoint {
+	if len(m.points) == 0 {
+		panic("can't peek empty heap")
+	}
 	return m.points[0]
 }
 
+// Pop removes and returns the root of the heap. It panics if the heap is
+// empty.
 func (m *PointHeap) Pop() MetricPoint {
-	if m.size == 0 {
+	n := len(m.points)
+	if n == 0 {
 		panic("can't pop empty heap")
 	}
-	p := m.points[0]
-	m.points = m.points[1:m.size]
-	m.size--
-	m.heapify(0)
-	return p
+	root := m.points[0]
+	// Move the last element to the root and sift it down. Re-slicing off the
+	// front instead would renumber every node and destroy the heap ordering.
+	last := n - 1
+	m.points[0] = m.points[last]
+	m.points = m.points[:last]
+	m.siftDown(0)
+	return root
 }
 
+// Report empties the heap, returning the points in heap order (ascending
+// metric for a min-heap, descending for a max-heap).
 func (m *PointHeap) Report() []MetricPoint {
-	n := m.size
+	n := len(m.points)
 	result := make([]MetricPoint, n)
 	for i := 0; i < n; i++ {
 		result[i] = m.Pop()
@@ -68,13 +65,53 @@ func (m *PointHeap) Report() []MetricPoint {
 	return result
 }
 
+// ReportReversed empties the heap, returning the points in the reverse of
+// heap order.
 func (m *PointHeap) ReportReversed() []MetricPoint {
-	n := m.size
+	n := len(m.points)
 	result := make([]MetricPoint, n)
 	for i := 0; i < n; i++ {
 		result[n-i-1] = m.Pop()
 	}
 	return result
+}
+
+// higher reports whether the point at index i belongs above the point at
+// index j in the heap.
+func (m *PointHeap) higher(i, j int) bool {
+	if m.isMinHeap {
+		return m.points[i].Metric < m.points[j].Metric
+	}
+	return m.points[i].Metric > m.points[j].Metric
+}
+
+func (m *PointHeap) siftUp(i int) {
+	for i > 0 {
+		parent := m.parent(i)
+		if !m.higher(i, parent) {
+			return
+		}
+		m.swap(i, parent)
+		i = parent
+	}
+}
+
+func (m *PointHeap) siftDown(i int) {
+	n := len(m.points)
+	for {
+		best := i
+		if l := m.left(i); l < n && m.higher(l, best) {
+			best = l
+		}
+		if r := m.right(i); r < n && m.higher(r, best) {
+			best = r
+		}
+		if best == i {
+			return
+		}
+		m.swap(i, best)
+		i = best
+	}
 }
 
 func (m *PointHeap) parent(i int) int {
@@ -91,51 +128,4 @@ func (m *PointHeap) right(i int) int {
 
 func (m *PointHeap) swap(i, j int) {
 	m.points[i], m.points[j] = m.points[j], m.points[i]
-}
-
-func (m *PointHeap) isLeaf(i int) bool {
-	if i > (m.size/2) && i <= m.size {
-		return true
-	}
-	return false
-}
-
-func (m *PointHeap) heapify(i int) {
-	if m.size <= 1 {
-		return
-	}
-	if m.isLeaf(i) {
-		return
-	}
-	l := m.left(i)
-	r := m.right(i)
-	if m.isMinHeap {
-		var min int
-		if l < m.size && m.points[l].Metric < m.points[i].Metric {
-			min = l
-		} else {
-			min = i
-		}
-		if r < m.size && m.points[r].Metric < m.points[min].Metric {
-			min = r
-		}
-		if min != i {
-			m.swap(i, min)
-			m.heapify(min)
-		}
-	} else {
-		var max int
-		if l < m.size && m.points[l].Metric > m.points[i].Metric {
-			max = l
-		} else {
-			max = i
-		}
-		if r < m.size && m.points[r].Metric > m.points[max].Metric {
-			max = r
-		}
-		if max != i {
-			m.swap(i, max)
-			m.heapify(max)
-		}
-	}
 }

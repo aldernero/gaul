@@ -26,12 +26,14 @@ func NewTrigLUT() *TrigLUT {
 }
 
 func (lut *TrigLUT) Sin(x float64) float64 {
-	dt := x / LUTFactor
-	i := int(x*LUTFactor+LUTSize) & LUTMask
+	// pos is the (fractional) table index for x. Flooring rather than
+	// truncating keeps the index and the interpolation fraction consistent
+	// for negative x, and masking wraps the index into the table.
+	pos := x * LUTFactor
+	base := math.Floor(pos)
+	i := int(int64(base) & LUTMask)
 	j := (i + 1) & LUTMask
-	y1 := lut.sinTable[i]
-	y2 := lut.sinTable[j]
-	return Lerp(y1, y2, dt-math.Floor(dt))
+	return Lerp(lut.sinTable[i], lut.sinTable[j], pos-base)
 }
 
 func (lut *TrigLUT) Cos(x float64) float64 {

@@ -143,6 +143,11 @@ func (k *KDTree) Clear() {
 }
 
 func (k *KDTree) Size() int {
+	// Only an empty root carries no point; every other node is created with
+	// one. Counting unconditionally would report an empty tree as size 1.
+	if k.point == nil {
+		return 0
+	}
 	count := 1
 	if k.left != nil {
 		count += k.left.Size()
