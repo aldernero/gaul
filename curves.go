@@ -21,7 +21,7 @@ func Chaikin(c Curve, q float64, n int) Curve {
 	left := q / 2
 	right := 1 - (q / 2)
 	for i := 0; i < n; i++ {
-		newPoints := make([]Point, 0)
+		newPoints := make([]Point, 0, 2*len(points))
 		for j := 0; j < len(points)-1; j++ {
 			p1 := points[j]
 			p2 := points[j+1]
@@ -48,8 +48,7 @@ func Chaikin(c Curve, q float64, n int) Curve {
 			}
 			newPoints = append(newPoints, q, r)
 		}
-		points = []Point{}
-		points = append(points, newPoints...)
+		points = newPoints
 	}
 	return Curve{Points: points, Closed: c.Closed}
 }

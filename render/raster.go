@@ -24,6 +24,9 @@ type Raster struct {
 	rz      *ftraster.Rasterizer
 	painter *ftraster.RGBAPainter
 	scale   float64
+	// rp is reused across RenderPath calls so a render loop does not
+	// allocate a fresh path buffer for every drawn shape.
+	rp ftraster.Path
 }
 
 // NewRaster returns a Raster with a new w x h image.
@@ -130,18 +133,18 @@ func (r *Raster) RenderPath(p *Path, s Style) {
 		return
 	}
 	if fill {
-		var rp ftraster.Path
+		r.rp = r.rp[:0]
 		for _, poly := range polys {
-			rp.Start(fixPoint(poly[0], poly[1]))
+			r.rp.Start(fixPoint(poly[0], poly[1]))
 			for i := 2; i < len(poly); i += 2 {
-				rp.Add1(fixPoint(poly[i], poly[i+1]))
+				r.rp.Add1(fixPoint(poly[i], poly[i+1]))
 			}
 			// Filling implicitly closes every subpath.
-			rp.Add1(fixPoint(poly[0], poly[1]))
+			r.rp.Add1(fixPoint(poly[0], poly[1]))
 		}
 		r.rz.Clear()
 		r.rz.UseNonZeroWinding = s.FillRule == NonZero
-		r.rz.AddPath(rp)
+		r.rz.AddPath(r.rp)
 		r.painter.SetColor(s.FillColor)
 		r.rz.Rasterize(r.painter)
 	}
@@ -155,18 +158,18 @@ func (r *Raster) RenderPath(p *Path, s Style) {
 		if len(strokePolys) == 0 {
 			return
 		}
-		var rp ftraster.Path
+		r.rp = r.rp[:0]
 		for _, poly := range strokePolys {
-			rp.Start(fixPoint(poly[0], poly[1]))
+			r.rp.Start(fixPoint(poly[0], poly[1]))
 			for i := 2; i < len(poly); i += 2 {
-				rp.Add1(fixPoint(poly[i], poly[i+1]))
+				r.rp.Add1(fixPoint(poly[i], poly[i+1]))
 			}
 		}
 		r.rz.Clear()
 		// Stroke outlines self-overlap at joins; non-zero winding keeps the
 		// overlap from punching holes.
 		r.rz.UseNonZeroWinding = true
-		r.rz.AddStroke(rp, fix(s.StrokeWidth), capper(s.Cap), joiner(s.Join))
+		r.rz.AddStroke(r.rp, fix(s.StrokeWidth), capper(s.Cap), joiner(s.Join))
 		r.painter.SetColor(s.StrokeColor)
 		r.rz.Rasterize(r.painter)
 	}

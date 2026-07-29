@@ -166,6 +166,16 @@ func (r *Rng) Noise4D(x float64, y float64, z float64, w float64) float64 {
 	return r.calcNoise4(x, y, z, w)
 }
 
+// ShufflePoints randomly permutes a slice of points in place using the seeded
+// PRNG, so the permutation is reproducible for a given seed.
+func (r *Rng) ShufflePoints(p []Point) {
+	// Fisher-Yates, drawing an unbiased index from the seeded generator.
+	for i := len(p) - 1; i > 0; i-- {
+		j := int(r.Prng.Uint64n(uint64(i + 1)))
+		p[i], p[j] = p[j], p[i]
+	}
+}
+
 // UniformRandomPoints generates a list of points whose coordinates
 // follow a uniform random distribution within a rectangle
 func (r *Rng) UniformRandomPoints(num int, rect Rect) []Point {
@@ -339,8 +349,24 @@ func (l *LFSRLarge) Float64() float64 {
 	return float64(l.Next()>>11) / (1 << 53)
 }
 
+// Uint64n returns a uniformly distributed value in [0, n). It panics if n is
+// zero. A plain Next()%n would favor small results whenever n does not divide
+// 2^64, so the tail of the range that causes the skew is rejected.
 func (l *LFSRLarge) Uint64n(n uint64) uint64 {
-	return l.Next() % n
+	if n == 0 {
+		panic("Uint64n: n must be positive")
+	}
+	k := (^uint64(0)%n + 1) % n // 2^64 mod n
+	if k == 0 {
+		// n divides 2^64 exactly; every value maps evenly.
+		return l.Next() % n
+	}
+	threshold := ^uint64(0) - k + 1 // 2^64 - k, the first biased value
+	v := l.Next()
+	for v >= threshold {
+		v = l.Next()
+	}
+	return v % n
 }
 
 func (l *LFSRLarge) Uint64() uint64 {

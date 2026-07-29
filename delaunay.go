@@ -2,7 +2,6 @@ package gaul
 
 import (
 	"math"
-	"sort"
 )
 
 // delaunayPointKey identifies duplicate coordinates (exact float64 equality).
@@ -50,10 +49,20 @@ type triInt struct {
 	i, j, k int
 }
 
+// sort3 orders three indices ascending. It is called twice per triangle per
+// insertion inside an O(n^2) loop, so it uses a fixed comparison network
+// rather than allocating a slice for sort.Ints.
 func sort3(a, b, c int) (int, int, int) {
-	x := []int{a, b, c}
-	sort.Ints(x)
-	return x[0], x[1], x[2]
+	if a > b {
+		a, b = b, a
+	}
+	if b > c {
+		b, c = c, b
+	}
+	if a > b {
+		a, b = b, a
+	}
+	return a, b, c
 }
 
 type edgeInt struct {

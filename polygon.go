@@ -42,22 +42,20 @@ func NewRegularPolygonWithSideLength(sides int, sideLength float64, center Point
 }
 
 func (p RegularPolygon) Points() []Point {
-	points := make([]Point, 0)
+	points := make([]Point, p.Sides)
 	s := float64(p.Sides)
 	for i := 0; i < p.Sides; i++ {
-		angle := Tau*float64(i)/s + p.Rotation
-		x := p.Center.X + p.Radius*math.Cos(angle)
-		y := p.Center.Y + p.Radius*math.Sin(angle)
-		points = append(points, Point{X: x, Y: y})
+		sin, cos := math.Sincos(Tau*float64(i)/s + p.Rotation)
+		points[i] = Point{X: p.Center.X + p.Radius*cos, Y: p.Center.Y + p.Radius*sin}
 	}
 	return points
 }
 
 func (p RegularPolygon) Edges() []Line {
 	points := p.Points()
-	edges := make([]Line, 0)
+	edges := make([]Line, p.Sides)
 	for i := 0; i < p.Sides; i++ {
-		edges = append(edges, Line{P: points[i], Q: points[(i+1)%p.Sides]})
+		edges[i] = Line{P: points[i], Q: points[(i+1)%p.Sides]}
 	}
 	return edges
 }
@@ -85,13 +83,7 @@ func (p RegularPolygon) Lerp(t float64) Point {
 }
 
 func (p RegularPolygon) ToCurve() Curve {
-	points := p.Points()
-	curve := Curve{}
-	curve.Closed = true
-	for _, point := range points {
-		curve.AddPoint(point.X, point.Y)
-	}
-	return curve
+	return Curve{Points: p.Points(), Closed: true}
 }
 
 func (p RegularPolygon) Draw(ctx *render.Context) {

@@ -1,7 +1,6 @@
 package gaul
 
 import (
-	_ "container/heap"
 	"fmt"
 	"math"
 	"math/rand"
@@ -58,16 +57,24 @@ func NoTinyVals(a float64) float64 {
 	return a
 }
 
-// Linspace creates a slice of linearly distributed values in a range
+// Linspace creates a slice of n linearly distributed values from i. If b is
+// true the range is inclusive of j, otherwise j is the exclusive upper bound.
 func Linspace(i float64, j float64, n int, b bool) []float64 {
-	var result []float64
+	if n <= 0 {
+		return nil
+	}
+	if n == 1 {
+		// An inclusive single-sample range would otherwise divide by zero.
+		return []float64{i}
+	}
 	N := float64(n)
 	if b {
 		N -= 1
 	}
 	d := (j - i) / N
+	result := make([]float64, n)
 	for k := 0; k < n; k++ {
-		result = append(result, i+float64(k)*d)
+		result[k] = i + float64(k)*d
 	}
 	return result
 }
@@ -82,16 +89,17 @@ func Rad2Deg(f float64) float64 {
 	return 180 * f / math.Pi
 }
 
-// Shuffle a slice of points
+// Shuffle randomly permutes a slice of points using a time-seeded generator.
+// Use [Rng.ShufflePoints] for a shuffle that is reproducible from a seed.
 func Shuffle(p *[]Point) {
-	now := time.Now().UnixMicro()
-	rng := rand.New(rand.NewSource(now))
-	n := len(*p)
-	for i := 0; i < 3*n; i++ {
-		j := rng.Intn(n)
-		k := rng.Intn(n)
-		(*p)[j], (*p)[k] = (*p)[k], (*p)[j]
+	s := *p
+	if len(s) < 2 {
+		return
 	}
+	// Fisher-Yates. The previous implementation did 3n random transpositions,
+	// which is both slower and does not produce a uniform permutation.
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(s), func(i, j int) { s[i], s[j] = s[j], s[i] })
 }
 
 // GetTimestampString creates a string based on the current time for use in filenames

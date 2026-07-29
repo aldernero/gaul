@@ -172,6 +172,27 @@ func SquaredDistance(p Point, q Point) float64 {
 	return (q.X-p.X)*(q.X-p.X) + (q.Y-p.Y)*(q.Y-p.Y)
 }
 
+// SquaredDistanceToRect is the square of the distance from a point to the
+// nearest point of a rectangle, or 0 if the point is inside it. Spatial
+// indexes use this to decide whether a region can possibly hold a closer
+// neighbor than the ones already found.
+func SquaredDistanceToRect(p Point, r Rect) float64 {
+	var dx, dy float64
+	switch {
+	case p.X < r.X:
+		dx = r.X - p.X
+	case p.X > r.X+r.W:
+		dx = p.X - (r.X + r.W)
+	}
+	switch {
+	case p.Y < r.Y:
+		dy = r.Y - p.Y
+	case p.Y > r.Y+r.H:
+		dy = p.Y - (r.Y + r.H)
+	}
+	return dx*dx + dy*dy
+}
+
 // Line functions
 // String representation of a line, useful for debugging
 func (l Line) String() string {
@@ -778,13 +799,15 @@ func (r Rect) Intersects(rect Rect) bool {
 
 // ToCurve calculates a closed curve with points corresponding to the vertices of the rectangle
 func (r Rect) ToCurve() Curve {
-	var curve Curve
-	curve.Closed = true
-	curve.Points = append(curve.Points, Point{X: r.X, Y: r.Y})
-	curve.Points = append(curve.Points, Point{X: r.X + r.W, Y: r.Y})
-	curve.Points = append(curve.Points, Point{X: r.X + r.W, Y: r.Y + r.H})
-	curve.Points = append(curve.Points, Point{X: r.X, Y: r.Y + r.H})
-	return curve
+	return Curve{
+		Points: []Point{
+			{X: r.X, Y: r.Y},
+			{X: r.X + r.W, Y: r.Y},
+			{X: r.X + r.W, Y: r.Y + r.H},
+			{X: r.X, Y: r.Y + r.H},
+		},
+		Closed: true,
+	}
 }
 
 // Draw draws the rectangle given a render context

@@ -37,57 +37,56 @@ func (k *KDTree) Insert(p IndexPoint) {
 	k.insert(p, 0)
 }
 
+// Search returns the stored point equal to p, or nil if the tree does not
+// contain it.
 func (k *KDTree) Search(p IndexPoint) *IndexPoint {
-	var result *IndexPoint
 	if !k.region.ContainsPoint(p.Point) {
 		return nil
 	}
-	if k.point == nil {
-		return nil
-	}
-	if k.point.IsEqual(p.Point) {
-		return k.point
-	}
-	if k.left != nil {
-		result = k.left.Search(p)
-		if result != nil {
-			return result
-		}
-	}
-	if k.right != nil {
-		result = k.right.Search(p)
-		if result != nil {
-			return result
-		}
-	}
-	return nil
+	return k.find(p, 0)
 }
 
+// UpdateIndex sets the index of the stored point equal to p and returns it, or
+// returns nil if the tree does not contain it.
 func (k *KDTree) UpdateIndex(p IndexPoint, index int) *IndexPoint {
-	var result *IndexPoint
-	if !k.region.ContainsPoint(p.Point) {
+	found := k.Search(p)
+	if found == nil {
 		return nil
 	}
+	found.Index = index
+	return found
+}
+
+// find descends to the single subtree that insert would have placed p in,
+// alternating between the x and y axes by depth. Visiting both children (the
+// previous behavior) made lookups O(n) rather than O(log n).
+func (k *KDTree) find(p IndexPoint, d int) *IndexPoint {
 	if k.point == nil {
 		return nil
 	}
 	if k.point.IsEqual(p.Point) {
-		k.point.Index = index
 		return k.point
 	}
-	if k.left != nil {
-		result = k.left.UpdateIndex(p, index)
-		if result != nil {
-			return result
+	var child *KDTree
+	// The comparisons here must match insert exactly, including the tie
+	// break: equal coordinates go right.
+	if d%2 == 0 {
+		if p.X < k.point.X {
+			child = k.left
+		} else {
+			child = k.right
+		}
+	} else {
+		if p.Y < k.point.Y {
+			child = k.left
+		} else {
+			child = k.right
 		}
 	}
-	if k.right != nil {
-		result = k.right.UpdateIndex(p, index)
-		if result != nil {
-			return result
-		}
+	if child == nil {
+		return nil
 	}
-	return nil
+	return child.find(p, d+1)
 }
 
 func (k *KDTree) Query(r Rect) []Point {
@@ -264,29 +263,37 @@ func (k *KDTree) draw(ctx *render.Context, depth int, pointSize float64) {
 	}
 }
 
+// pushOnHeap collects the s nearest points to target into the max-heap h.
+//
+// Subtrees whose region cannot contain anything closer than the current worst
+// candidate are skipped, and the child nearer to the target is visited first
+// so the heap fills with good candidates early and prunes harder. This relies
+// on every point lying inside its node's region, which Insert maintains.
 func (k *KDTree) pushOnHeap(target IndexPoint, h *PointHeap, s int) {
-	if k.point != nil {
-		if k.point.Index != target.Index {
-			metric := SquaredDistance(target.Point, k.point.Point)
-			mp := MetricPoint{
-				Metric: metric,
-				Index:  k.point.Index,
-				Point:  k.point.Point,
-			}
-			if h.Len() < s {
-				h.Push(mp)
-			} else {
-				if metric < h.Peek().Metric {
-					_ = h.Pop()
-					h.Push(mp)
-				}
-			}
+	if k.point == nil {
+		return
+	}
+	if h.Len() >= s && SquaredDistanceToRect(target.Point, k.region) > h.Peek().Metric {
+		return
+	}
+	if k.point.Index != target.Index {
+		metric := SquaredDistance(target.Point, k.point.Point)
+		if h.Len() < s {
+			h.Push(MetricPoint{Metric: metric, Index: k.point.Index, Point: k.point.Point})
+		} else if metric < h.Peek().Metric {
+			_ = h.Pop()
+			h.Push(MetricPoint{Metric: metric, Index: k.point.Index, Point: k.point.Point})
 		}
 	}
-	if k.left != nil {
-		k.left.pushOnHeap(target, h, s)
+	first, second := k.left, k.right
+	if first != nil && second != nil &&
+		SquaredDistanceToRect(target.Point, second.region) < SquaredDistanceToRect(target.Point, first.region) {
+		first, second = second, first
 	}
-	if k.right != nil {
-		k.right.pushOnHeap(target, h, s)
+	if first != nil {
+		first.pushOnHeap(target, h, s)
+	}
+	if second != nil {
+		second.pushOnHeap(target, h, s)
 	}
 }

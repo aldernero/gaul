@@ -287,7 +287,16 @@ func (q *QuadTree) subdivide() {
 	q.nw = NewQuadTree(Rect{X: x, Y: y, W: w, H: h})
 }
 
+// pushOnHeap collects the k nearest points to target into the max-heap h.
+//
+// Quadrants that cannot contain anything closer than the current worst
+// candidate are skipped, and children are visited nearest-first so the heap
+// fills with good candidates early and prunes harder. Insert guarantees every
+// point lies inside its node's boundary, which is what makes this sound.
 func (q *QuadTree) pushOnHeap(target IndexPoint, h *PointHeap, k int) {
+	if h.Len() >= k && SquaredDistanceToRect(target.Point, q.boundary) > h.Peek().Metric {
+		return
+	}
 	for _, p := range q.points {
 		if p.Index == target.Index {
 			continue
@@ -300,18 +309,28 @@ func (q *QuadTree) pushOnHeap(target IndexPoint, h *PointHeap, k int) {
 		}
 		if h.Len() < k {
 			h.Push(mp)
-		} else {
-			if metric < h.Peek().Metric {
-				_ = h.Pop()
-				h.Push(mp)
-			}
+		} else if metric < h.Peek().Metric {
+			_ = h.Pop()
+			h.Push(mp)
 		}
 	}
 	if q.ne == nil {
 		return
 	}
-	q.ne.pushOnHeap(target, h, k)
-	q.se.pushOnHeap(target, h, k)
-	q.sw.pushOnHeap(target, h, k)
-	q.nw.pushOnHeap(target, h, k)
+	children := [4]*QuadTree{q.ne, q.se, q.sw, q.nw}
+	var dists [4]float64
+	for i, c := range children {
+		dists[i] = SquaredDistanceToRect(target.Point, c.boundary)
+	}
+	// Insertion sort of four elements; cheaper than a sort.Slice closure in
+	// what is the innermost loop of a neighbor query.
+	for i := 1; i < len(children); i++ {
+		for j := i; j > 0 && dists[j] < dists[j-1]; j-- {
+			dists[j], dists[j-1] = dists[j-1], dists[j]
+			children[j], children[j-1] = children[j-1], children[j]
+		}
+	}
+	for _, c := range children {
+		c.pushOnHeap(target, h, k)
+	}
 }

@@ -74,8 +74,8 @@ func TestRecorderIsolatedFromContextReuse(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc := buf.String()
-	assert.Contains(t, doc, "M0 0")   // rect survived
-	assert.Contains(t, doc, "C")      // circle beziers
+	assert.Contains(t, doc, "M0 0") // rect survived
+	assert.Contains(t, doc, "C")    // circle beziers
 	assert.Equal(t, 2, strings.Count(doc, "<path"))
 }
 
