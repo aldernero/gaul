@@ -14,16 +14,16 @@ const (
 )
 
 type recordedOp struct {
-	kind  opKind
-	path  *Path
-	style Style
 	img   image.Image
-	m     Matrix
-	text  string
-	x, y  float64
-	font  *Font
-	size  float64
 	col   color.Color
+	path  *Path
+	font  *Font
+	text  string
+	style Style
+	m     Matrix
+	x, y  float64
+	size  float64
+	kind  opKind
 }
 
 // Recorder is a Renderer that records draw operations so they can be
@@ -35,8 +35,8 @@ type recordedOp struct {
 // Recorded paths are deep-copied; images and fonts are retained by
 // reference and must not be mutated before Replay.
 type Recorder struct {
-	w, h float64
 	ops  []recordedOp
+	w, h float64
 }
 
 // NewRecorder returns a Recorder with the given logical surface size.

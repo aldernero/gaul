@@ -311,8 +311,8 @@ func (t *rbTree) getFirst(node *rbNode) *rbNode {
 }
 
 type EdgeVertex struct {
-	Point
 	Edges []*Edge
+	Point
 }
 
 // Edge structure
@@ -420,10 +420,10 @@ func (h *Halfedge) GetEndpoint() Point {
 
 // Cell of voronoi diagram
 type Cell struct {
-	// Site of the cell
-	Site Point
 	// Array of halfedges sorted counterclockwise
 	Halfedges []*Halfedge
+	// Site of the cell
+	Site Point
 }
 
 func newCell(site Point) *Cell {
@@ -452,14 +452,13 @@ func (t *Cell) prepare() int {
 }
 
 type Voronoi struct {
-	cells []*Cell
-	edges []*Edge
-
 	cellsMap map[Point]*Cell
 
 	beachline        rbTree
 	circleEvents     rbTree
 	firstCircleEvent *circleEvent
+	cells            []*Cell
+	edges            []*Edge
 }
 
 type fortuneDiagram struct {
@@ -522,9 +521,9 @@ func (s *Voronoi) setEdgeEndpoint(edge *Edge, LeftCell, RightCell *Cell, vertex 
 
 type Beachsection struct {
 	node        *rbNode
-	site        Point
 	circleEvent *circleEvent
 	edge        *Edge
+	site        Point
 }
 
 // rbNodeValue intergface
@@ -888,8 +887,8 @@ func (s *Voronoi) addBeachsection(site Point) {
 
 type circleEvent struct {
 	node    *rbNode
-	site    Point
 	arc     *Beachsection
+	site    Point
 	x       float64
 	y       float64
 	ycenter float64

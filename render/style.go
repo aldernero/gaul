@@ -49,15 +49,15 @@ const (
 type Style struct {
 	FillColor   color.Color
 	StrokeColor color.Color
+	// Dashes is the on/off dash pattern in pixels; empty means solid.
+	Dashes      []float64
 	StrokeWidth float64
-	Cap         LineCap
-	Join        LineJoin
 	// MiterLimit is the SVG stroke-miterlimit value. It only affects SVG
 	// output; zero means the SVG default (4).
 	MiterLimit float64
-	// Dashes is the on/off dash pattern in pixels; empty means solid.
-	Dashes     []float64
 	DashOffset float64
+	Cap        LineCap
+	Join       LineJoin
 	FillRule   FillRule
 }
 

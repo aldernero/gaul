@@ -23,10 +23,10 @@ type Raster struct {
 	img     *image.RGBA
 	rz      *ftraster.Rasterizer
 	painter *ftraster.RGBAPainter
-	scale   float64
 	// rp is reused across RenderPath calls so a render loop does not
 	// allocate a fresh path buffer for every drawn shape.
-	rp ftraster.Path
+	rp    ftraster.Path
+	scale float64
 }
 
 // NewRaster returns a Raster with a new w x h image.

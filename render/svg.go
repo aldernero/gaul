@@ -23,8 +23,8 @@ import (
 // pre-transforms all coordinates, path elements carry flat coordinates and
 // no transform attributes.
 type SVG struct {
-	w, h  float64
 	elems bytes.Buffer
+	w, h  float64
 	// Precision is the number of decimal places written for coordinates.
 	Precision int
 }

@@ -7,14 +7,14 @@ import (
 const defaultCapacity = 4
 
 type QuadTree struct {
-	capacity int
+	nw       *QuadTree
+	ne       *QuadTree
+	se       *QuadTree
+	sw       *QuadTree
 	points   []IndexPoint
 	boundary Rect
 
-	nw *QuadTree
-	ne *QuadTree
-	se *QuadTree
-	sw *QuadTree
+	capacity int
 }
 
 func NewQuadTree(r Rect) *QuadTree {

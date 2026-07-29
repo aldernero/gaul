@@ -18,13 +18,13 @@ import (
 // font file and metrics may differ. For pen-plotter output, avoid text or
 // convert it to paths downstream.
 type Font struct {
+	otf *opentype.Font
+
+	faces map[float64]font.Face
 	// Name is the font family name written to SVG output.
 	Name string
 
-	otf *opentype.Font
-
-	mu    sync.Mutex
-	faces map[float64]font.Face
+	mu sync.Mutex
 }
 
 // LoadFont parses TTF/OTF font data. The name is used as the SVG

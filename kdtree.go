@@ -6,9 +6,9 @@ import (
 
 type KDTree struct {
 	point  *IndexPoint
-	region Rect
 	left   *KDTree
 	right  *KDTree
+	region Rect
 }
 
 func NewKDTree(r Rect) *KDTree {

@@ -16,9 +16,9 @@ const (
 
 // Rng is a random number generator with a system PRNG and simplex noise
 type Rng struct {
+	Simplex     *gfx.SimplexNoise
 	seed        int64
 	Prng        LFSRLarge
-	Simplex     *gfx.SimplexNoise
 	octaves     int
 	persistence float64
 	lacunarity  float64

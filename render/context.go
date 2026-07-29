@@ -7,9 +7,9 @@ import (
 
 // ctxState is the saveable drawing state managed by Push/Pop.
 type ctxState struct {
-	m        Matrix
-	style    Style
 	font     *Font
+	style    Style
+	m        Matrix
 	fontSize float64
 }
 
@@ -25,10 +25,10 @@ type ctxState struct {
 // The zero style is fill black, stroke black, stroke width 1.
 type Context struct {
 	renderers []Renderer
-	w, h      float64
-	state     ctxState
 	stack     []ctxState
 	path      Path
+	state     ctxState
+	w, h      float64
 }
 
 // NewContext returns a Context that draws to every given Renderer. The
